@@ -57,67 +57,76 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
-  Future<void> _loadTours() async {
-    try {
-      final response = await _toursService.getAllTours();
-      final data = response.data;
-      final List items = data['data'] ?? data ?? [];
-      debugPrint('🔴 TOURS RESPONSE: ${response.data}');
-      debugPrint('🔴 ITEMS COUNT: ${items.length}');
-      if (mounted) {
-        setState(() {
-          _tours = items
-              .take(5)
-              .map<Map<String, dynamic>>(
-                (t) => {
-                  'id': t['id'],
-                  'img': t['image'] ?? t['image_url'] ?? '',
-                  'name': t['title'] ?? t['name'] ?? '',
-                  'loc': t['location'] ?? '',
-                  'rating': (t['rating'] ?? 0).toString(),
-                  'price': '\$${t['price'] ?? 0}/pax',
-                  'tag': '${t['duration_days'] ?? 1}D',
-                },
-              )
-              .toList();
-        });
-      }
-    } catch (e) {
-      debugPrint('Error loading tours: $e');
-    } finally {
-      if (mounted) setState(() => _isLoadingTours = false);
+ Future<void> _loadTours() async {
+  try {
+    final response = await _toursService.getAllTours();
+    final data = response.data;
+    final List items = data['data'] ?? data ?? [];
+    if (mounted) {
+      setState(() {
+        final images = [
+          AppAssets.pyramids,
+          AppAssets.karnak,
+          AppAssets.abuSimbel,
+          AppAssets.alexandria,
+          AppAssets.philae,
+        ];
+        _tours = items.take(5).toList().asMap().entries.map<Map<String, dynamic>>((entry) {
+          final i = entry.key;
+          final t = entry.value;
+          return {
+            'id': t['id'],
+            'img': images[i % images.length],
+            'isNetwork': false,
+            'name': t['title'] ?? t['name'] ?? '',
+            'loc': t['location'] ?? '',
+            'rating': (t['rating'] ?? 0).toString(),
+            'price': '\$${t['price'] ?? 0}/pax',
+            'tag': '${t['duration_days'] ?? 1}D',
+          };
+        }).toList();
+      });
     }
+  } catch (e) {
+    debugPrint('Error loading tours: $e');
+  } finally {
+    if (mounted) setState(() => _isLoadingTours = false);
   }
+}
 
   Future<void> _loadPlaces() async {
-    try {
-      final response = await _placesService.getTrendingPlaces();
-      final data = response.data;
-      final List items = data['data'] ?? data ?? [];
-      if (mounted) {
-        setState(() {
-          _places = items
-              .take(3)
-              .map<Map<String, dynamic>>(
-                (p) => {
-                  'id': p['id'],
-                  'img': p['image'] ?? p['image_url'] ?? '',
-                  'name': p['title'] ?? p['name'] ?? '',
-                  'loc': p['location'] ?? '',
-                  'rating': (p['rating'] ?? 0).toString(),
-                  'price': '\$${p['ticket_price'] ?? 0}',
-                },
-              )
-              .toList();
-        });
-      }
-    } catch (e) {
-      debugPrint('Error loading places: $e');
-    } finally {
-      if (mounted) setState(() => _isLoadingPlaces = false);
+  try {
+    final response = await _placesService.getTrendingPlaces();
+    final data = response.data;
+    final List items = data['data'] ?? data ?? [];
+    if (mounted) {
+      setState(() {
+        final images = [
+          AppAssets.siwa,
+          AppAssets.nileSunset,
+          AppAssets.valley,
+        ];
+        _places = items.take(3).toList().asMap().entries.map<Map<String, dynamic>>((entry) {
+          final i = entry.key;
+          final p = entry.value;
+          return {
+            'id': p['id'],
+            'img': images[i % images.length],
+            'isNetwork': false,
+            'name': p['title'] ?? p['name'] ?? '',
+            'loc': p['location'] ?? '',
+            'rating': (p['rating'] ?? 0).toString(),
+            'price': '\$${p['ticket_price'] ?? 0}',
+          };
+        }).toList();
+      });
     }
+  } catch (e) {
+    debugPrint('Error loading places: $e');
+  } finally {
+    if (mounted) setState(() => _isLoadingPlaces = false);
   }
-
+}
   Future<void> _loadUpcomingTrip() async {
     try {
       final response = await _bookingService.getMyBookings();

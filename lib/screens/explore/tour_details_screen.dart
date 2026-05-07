@@ -51,7 +51,7 @@ class _TourDetailsScreenState extends State<TourDetailsScreen> {
         _price = args['price']?.toString() ?? '';
         _location =
             args['loc']?.toString() ?? args['location']?.toString() ?? '';
-        _image = args['img']?.toString() ?? args['image']?.toString() ?? '';
+       _image = args['img']?.toString() ?? args['image']?.toString() ?? '';
         _rating = args['rating']?.toString() ?? '';
       });
       tourId = _tourId;
@@ -73,8 +73,6 @@ class _TourDetailsScreenState extends State<TourDetailsScreen> {
             _price = '\$${tour['price'] ?? tour['ticket_price'] ?? ''}';
             _location = tour['location'] ?? _location;
             _description = tour['description'] ?? '';
-            final apiImg = (tour['image'] ?? tour['image_url'] ?? '').toString();
-_image = apiImg.isNotEmpty ? apiImg : 'assets/images/pyramids.jpg';
             _rating = (tour['rating'] ?? _rating).toString();
             _reviewsCount =
                 tour['reviews_count'] ?? tour['bookings_count'] ?? 0;

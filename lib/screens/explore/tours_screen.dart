@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/services/tours_service.dart';
 import '../../core/widgets/amun_filter_chip.dart';
+import '../../core/constants/app_assets.dart';
 
 class ToursScreen extends StatefulWidget {
   const ToursScreen({super.key});
@@ -35,33 +36,46 @@ class _ToursScreenState extends State<ToursScreen> {
     _loadTours();
   }
 
-  Future<void> _loadTours() async {
-    setState(() => _isLoading = true);
-    try {
-      final response = await _toursService.getAllTours();
-      final data = response.data;
-      final List items = data['data'] ?? data ?? [];
-      setState(() {
-        _tours = items.mapIndexed<Map<String, dynamic>>((i, t) => {
+Future<void> _loadTours() async {
+  setState(() => _isLoading = true);
+  try {
+    final response = await _toursService.getAllTours();
+    final data = response.data;
+    final List items = data['data'] ?? data ?? [];
+    final images = [
+      AppAssets.pyramids,
+      AppAssets.karnak,
+      AppAssets.abuSimbel,
+      AppAssets.alexandria,
+      AppAssets.philae,
+      AppAssets.siwa,
+      AppAssets.nileSunset,
+      AppAssets.luxorNight,
+      AppAssets.valley,
+      AppAssets.museum,
+    ];
+    setState(() {
+      _tours = items.asMap().entries.map<Map<String, dynamic>>((entry) {
+        final i = entry.key;
+        final t = entry.value;
+        return {
           'id': t['id'],
-          // ✅ لو الباك اند مبعتش صورة، بناخد من fallback list
-          'img': (t['image'] ?? t['image_url'] ?? '').toString().isNotEmpty
-              ? t['image'] ?? t['image_url']
-              : _fallbackImages[i % _fallbackImages.length],
-          'isNetwork': (t['image'] ?? t['image_url'] ?? '').toString().isNotEmpty,
+          'img': images[i % images.length],
+          'isNetwork': false,
           'name': t['title'] ?? t['name'] ?? '',
           'loc': t['location'] ?? 'Egypt',
           'rating': (t['rating'] ?? 0).toString(),
           'price': '\$${t['price'] ?? 0}',
           'days': t['duration_days'] ?? t['days'] ?? 1,
-        }).toList();
-      });
-    } catch (e) {
-      debugPrint('Error loading tours: $e');
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
+        };
+      }).toList();
+    });
+  } catch (e) {
+    debugPrint('Error loading tours: $e');
+  } finally {
+    if (mounted) setState(() => _isLoading = false);
   }
+}
 
   List<Map<String, dynamic>> get _filtered {
     if (_activeFilter == 0) return _tours;

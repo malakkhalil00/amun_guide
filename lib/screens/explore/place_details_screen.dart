@@ -66,7 +66,6 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
             _title = place['title'] ?? place['name'] ?? _title;
             _location = place['location'] ?? _location;
             _description = place['description'] ?? _description;
-            _image = place['image'] ?? place['image_url'] ?? _image;
             _rating = (place['rating'] ?? _rating).toString();
             _reviewsCount =
                 place['reviews_count'] ??
