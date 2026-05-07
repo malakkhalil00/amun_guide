@@ -44,10 +44,7 @@ class TourCard extends StatelessWidget {
                 const BorderRadius.vertical(top: Radius.circular(16)),
                 child: SizedBox(
                   height: 110, width: double.infinity,
-                 child: image.startsWith('http')
-    ? Image.network(image, fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => Image.asset('assets/images/pyramids.jpg', fit: BoxFit.cover))
-    : Image.asset(image.isNotEmpty ? image : 'assets/images/pyramids.jpg', fit: BoxFit.cover,
+                  child: Image.asset(image, fit: BoxFit.cover,
                       errorBuilder: (_, __, ___) => Container(
                           color: AppColors.bgInput,
                           child: const Icon(Icons.image,

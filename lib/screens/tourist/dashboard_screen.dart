@@ -59,9 +59,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Future<void> _loadTours() async {
     try {
-      final response = await _toursService.getPopularTours();
+      final response = await _toursService.getAllTours();
       final data = response.data;
       final List items = data['data'] ?? data ?? [];
+      debugPrint('🔴 TOURS RESPONSE: ${response.data}');
+      debugPrint('🔴 ITEMS COUNT: ${items.length}');
       if (mounted) {
         setState(() {
           _tours = items

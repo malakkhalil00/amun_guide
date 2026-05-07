@@ -274,7 +274,14 @@ class _PlaceCardState extends State<PlaceCard> {
                     ? Image.network(
                         widget.image,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Image.asset('assets/images/pyramids.jpg', fit: BoxFit.cover)
+                        errorBuilder: (_, __, ___) => Container(
+                          color: AppColors.bgInput,
+                          child: const Icon(
+                            Icons.image,
+                            color: Colors.white24,
+                            size: 32,
+                          ),
+                        ),
                       )
                     : Image.asset(
                         widget.image,

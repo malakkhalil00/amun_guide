@@ -41,7 +41,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
       setState(() {
         _places = items.map<Map<String, dynamic>>((p) => {
           'id': p['id'],
-          'img': p['image'] ?? p['image_url'] ?? '',
+          'img': p['image'] ?? p['image_url'] ?? 'assets/images/pyramids.jpg',
           'name': p['title'] ?? p['name'] ?? '',
           'loc': p['location'] ?? 'Egypt',
           'rating': (p['rating'] ?? 0).toString(),
@@ -212,8 +212,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                               price: _filtered[i]['price'] ?? '',
                               category: _filtered[i]['cat'] ?? '',
                               style: PlaceCardStyle.grid,
-                              isNetworkImage: true,
-                              onTap: () => Navigator.pushNamed(
+isNetworkImage: (_filtered[i]['img'] ?? '').toString().isNotEmpty,                              onTap: () => Navigator.pushNamed(
                                 context,
                                 '/place-details',
                                 arguments: _filtered[i],
@@ -233,8 +232,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                               price: _filtered[i]['price'] ?? '',
                               category: _filtered[i]['cat'] ?? '',
                               style: PlaceCardStyle.list,
-                              isNetworkImage: true,
-                              onTap: () => Navigator.pushNamed(
+isNetworkImage: (_filtered[i]['img'] ?? '').toString().isNotEmpty,                              onTap: () => Navigator.pushNamed(
                                 context,
                                 '/place-details',
                                 arguments: _filtered[i],

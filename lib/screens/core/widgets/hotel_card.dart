@@ -38,10 +38,7 @@ class HotelCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(12),
             child: SizedBox(
               width: 80, height: 80,
-              child: image.startsWith('http')
-    ? Image.network(image, fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => Image.asset('assets/images/pyramids.jpg', fit: BoxFit.cover))
-    : Image.asset(image.isNotEmpty ? image : 'assets/images/pyramids.jpg', fit: BoxFit.cover,
+              child: Image.asset(image, fit: BoxFit.cover,
                   errorBuilder: (_, __, ___) => Container(
                       color: AppColors.bgInput,
                       child: const Icon(Icons.hotel,

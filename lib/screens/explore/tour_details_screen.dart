@@ -73,7 +73,8 @@ class _TourDetailsScreenState extends State<TourDetailsScreen> {
             _price = '\$${tour['price'] ?? tour['ticket_price'] ?? ''}';
             _location = tour['location'] ?? _location;
             _description = tour['description'] ?? '';
-            _image = tour['image'] ?? tour['image_url'] ?? _image;
+            final apiImg = (tour['image'] ?? tour['image_url'] ?? '').toString();
+_image = apiImg.isNotEmpty ? apiImg : 'assets/images/pyramids.jpg';
             _rating = (tour['rating'] ?? _rating).toString();
             _reviewsCount =
                 tour['reviews_count'] ?? tour['bookings_count'] ?? 0;
@@ -236,7 +237,7 @@ class _TourDetailsScreenState extends State<TourDetailsScreen> {
                       _image.isNotEmpty
                           ? _buildImage(_image)
                           : Image.asset(
-                              'assets/images/nile_cruise.jpg',
+                              'assets/images/pyramids.jpg',
                               fit: BoxFit.cover,
                               errorBuilder: (_, __, ___) => Container(
                                 color: const Color(0xFF2A1F0E),
@@ -711,7 +712,7 @@ class _TourDetailsScreenState extends State<TourDetailsScreen> {
 
     return GestureDetector(
       onTap: () =>
-          Navigator.pushNamed(context, '/place-details', arguments: place),
+          Navigator.pushNamed(context, '/tour-', arguments: place),
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         child: Row(

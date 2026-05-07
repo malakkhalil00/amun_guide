@@ -5,7 +5,7 @@ import '../../core/constants/app_colors.dart';
 import 'dashboard_screen.dart';
 import 'profile_screen.dart';
 import '../explore/explore_screen.dart';
-import '../general/community_screen.dart';
+import '../explore/tours_screen.dart';
 
 class MainNavigation extends StatefulWidget {
   const MainNavigation({super.key});
@@ -20,7 +20,7 @@ class _MainNavigationState extends State<MainNavigation> {
   final List<Widget> _screens = const [
     DashboardScreen(),
     ExploreScreen(),
-    CommunityScreen(),
+    ToursScreen(),
     ProfileScreen(),
   ];
 
@@ -74,9 +74,9 @@ class _MainNavigationState extends State<MainNavigation> {
               label: 'Explore',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.people_outline),
-              activeIcon: Icon(Icons.people),
-              label: 'Community',
+              icon: Icon(Icons.map_outlined),
+              activeIcon: Icon(Icons.map),
+              label: 'Tours',
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.person_outline),
