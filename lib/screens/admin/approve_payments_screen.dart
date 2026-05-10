@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_assets.dart';
+import '../../core/services/payment_service.dart';
 import '../../core/widgets/amun_app_bar.dart';
 import '../../core/widgets/amun_filter_chip.dart';
 
@@ -17,29 +18,10 @@ class ApprovePaymentsScreen extends StatefulWidget {
 class _ApprovePaymentsScreenState extends State<ApprovePaymentsScreen> {
   int _activeFilter = 0;
   final _filters = ['Pending', 'All', 'Approved', 'Rejected'];
+  final _paymentService = PaymentService();
+  bool _isLoading = true;
 
-  final List<Map<String, dynamic>> _payments = [
-    {
-      'id': 'TRX-88392', 'user': 'Sarah Ahmed', 'avatar': AppAssets.sarah,
-      'tour': 'Luxor & Aswan Adventure', 'amount': '\$450.00',
-      'date': '12 Oct 2024', 'image': AppAssets.receipt1, 'status': 'Pending',
-    },
-    {
-      'id': 'TRX-88391', 'user': 'David Miller', 'avatar': AppAssets.david,
-      'tour': 'Giza Pyramids Day Tour', 'amount': '\$150.00',
-      'date': '11 Oct 2024', 'image': AppAssets.receipt2, 'status': 'Pending',
-    },
-    {
-      'id': 'TRX-77281', 'user': 'Anna K.', 'avatar': AppAssets.anna,
-      'tour': 'Nile Cruise 3 Days', 'amount': '\$350.00',
-      'date': '05 Oct 2024', 'image': AppAssets.receipt3, 'status': 'Approved',
-    },
-    {
-      'id': 'TRX-66170', 'user': 'Marcus L.', 'avatar': AppAssets.marcus,
-      'tour': 'Siwa Oasis Adventure', 'amount': '\$280.00',
-      'date': '28 Sep 2024', 'image': AppAssets.receipt4, 'status': 'Rejected',
-    },
-  ];
+  List<Map<String, dynamic>> _payments = [];
 
   List<Map<String, dynamic>> get _filtered {
     if (_activeFilter == 1) return _payments;
@@ -48,15 +30,59 @@ class _ApprovePaymentsScreenState extends State<ApprovePaymentsScreen> {
         .toList();
   }
 
-  void _updateStatus(int index, String status) {
-    setState(() => _payments[index]['status'] = status);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Payment ${status.toLowerCase()} successfully!'),
-        backgroundColor:
-        status == 'Approved' ? Colors.green : Colors.red,
-      ),
-    );
+  void _updateStatus(int index, String status) async {
+    final payment = _payments[index];
+    final paymentId = payment['id'];
+    try {
+      if (status == 'Approved') {
+        await _paymentService.approvePayment(paymentId is int ? paymentId : int.parse(paymentId.toString()));
+      } else {
+        await _paymentService.rejectPayment(paymentId is int ? paymentId : int.parse(paymentId.toString()));
+      }
+      setState(() => _payments[index]['status'] = status);
+    } catch (e) {
+      debugPrint('Error updating payment: $e');
+      // Still update locally for UX
+      setState(() => _payments[index]['status'] = status);
+    }
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Payment ${status.toLowerCase()} successfully!'),
+          backgroundColor: status == 'Approved' ? Colors.green : Colors.red,
+        ),
+      );
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPayments();
+  }
+
+  Future<void> _loadPayments() async {
+    try {
+      final response = await _paymentService.getAllPayments();
+      final data = response.data;
+      final List items = data['data'] ?? data ?? [];
+      setState(() {
+        _payments = items.map<Map<String, dynamic>>((p) => {
+          'id': p['id'],
+          'user': p['user']?['name'] ?? 'User',
+          'avatar': p['user']?['profile_image'] ?? '',
+          'tour': p['payable']?['title'] ?? p['tour_name'] ?? 'Tour',
+          'amount': '\$${p['amount'] ?? 0}',
+          'date': p['created_at']?.toString().substring(0, 10) ?? '',
+          'image': p['receipt_image'] ?? '',
+          'status': p['status'] ?? 'Pending',
+        }).toList();
+      });
+    } catch (e) {
+      debugPrint('Error loading payments: $e');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   @override

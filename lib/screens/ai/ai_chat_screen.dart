@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_assets.dart';
+import '../../core/services/conversation_service.dart';
 import '../../core/widgets/amun_app_bar.dart';
 
 class AiChatScreen extends StatefulWidget {
@@ -15,6 +16,9 @@ class AiChatScreen extends StatefulWidget {
 class _AiChatScreenState extends State<AiChatScreen> {
   final _controller = TextEditingController();
   final _scrollController = ScrollController();
+  final _conversationService = ConversationService();
+  int? _conversationId;
+  bool _isSending = false;
 
   final List<_Message> _messages = [
     _Message(
@@ -22,6 +26,22 @@ class _AiChatScreenState extends State<AiChatScreen> {
       isUser: false,
     ),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _initConversation();
+  }
+
+  Future<void> _initConversation() async {
+    try {
+      final response = await _conversationService.createConversation(context: 'Egypt travel assistant');
+      final data = response.data;
+      _conversationId = data['data']?['id'] ?? data['id'];
+    } catch (e) {
+      debugPrint('Could not create conversation: $e');
+    }
+  }
 
   final _quickReplies = [
     '3-day Cairo plan 🔺',
@@ -31,14 +51,53 @@ class _AiChatScreenState extends State<AiChatScreen> {
   ];
 
   void _sendMessage(String text) {
-    if (text.trim().isEmpty) return;
+    if (text.trim().isEmpty || _isSending) return;
     setState(() {
       _messages.add(_Message(text: text, isUser: true));
       _controller.clear();
+      _isSending = true;
     });
 
-    // Mock AI response
+    _scrollToBottom();
+
+    // Try API call, fall back to mock
+    if (_conversationId != null) {
+      _sendToApi(text);
+    } else {
+      _mockResponse(text);
+    }
+  }
+
+  Future<void> _sendToApi(String text) async {
+    try {
+      final response = await _conversationService.sendMessage(
+        _conversationId!,
+        {'message': text},
+      );
+      final data = response.data;
+      final aiReply = data['data']?['response'] ?? data['response'] ?? data['message'] ?? '';
+      if (mounted && aiReply.toString().isNotEmpty) {
+        setState(() {
+          _messages.add(_Message(
+            text: aiReply.toString(),
+            isUser: false,
+            hasPlan: text.toLowerCase().contains('plan') || text.toLowerCase().contains('itinerary'),
+          ));
+          _isSending = false;
+        });
+        _scrollToBottom();
+        return;
+      }
+    } catch (e) {
+      debugPrint('AI API error: $e');
+    }
+    // Fallback to mock
+    _mockResponse(text);
+  }
+
+  void _mockResponse(String text) {
     Future.delayed(const Duration(milliseconds: 800), () {
+      if (!mounted) return;
       setState(() {
         _messages.add(_Message(
           text: _getMockResponse(text),
@@ -47,14 +106,21 @@ class _AiChatScreenState extends State<AiChatScreen> {
               text.toLowerCase().contains('itinerary') ||
               text.toLowerCase().contains('cairo'),
         ));
+        _isSending = false;
       });
-      Future.delayed(const Duration(milliseconds: 100), () {
+      _scrollToBottom();
+    });
+  }
+
+  void _scrollToBottom() {
+    Future.delayed(const Duration(milliseconds: 100), () {
+      if (_scrollController.hasClients) {
         _scrollController.animateTo(
           _scrollController.position.maxScrollExtent,
           duration: const Duration(milliseconds: 300),
           curve: Curves.easeOut,
         );
-      });
+      }
     });
   }
 

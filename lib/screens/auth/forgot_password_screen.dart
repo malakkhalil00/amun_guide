@@ -1,12 +1,12 @@
-// ============================================
-// 📁 lib/screens/forgot_password_screen.dart
-// ============================================
+// 📁 lib/screens/auth/forgot_password_screen.dart
 
 import 'package:flutter/material.dart';
+import '../../core/services/auth_service.dart';
 
 class ForgotPasswordScreen extends StatelessWidget {
   ForgotPasswordScreen({super.key});
   final _emailController = TextEditingController();
+  final _authService = AuthService();
 
   @override
   Widget build(BuildContext context) {
@@ -79,9 +79,10 @@ class ForgotPasswordScreen extends StatelessWidget {
                 color: const Color(0xFF2A241F),
                 borderRadius: BorderRadius.circular(14),
               ),
-              child: const TextField(
-                style: TextStyle(color: Colors.white),
-                decoration: InputDecoration(
+              child: TextField(
+                controller: _emailController,
+                style: const TextStyle(color: Colors.white),
+                decoration: const InputDecoration(
                   hintText: 'user@example.com',
                   hintStyle: TextStyle(color: Colors.white38),
                   border: InputBorder.none,
@@ -94,23 +95,9 @@ class ForgotPasswordScreen extends StatelessWidget {
             const SizedBox(height: 28),
 
             // زرار Send
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: () {},
-                icon: const Icon(Icons.send, color: Colors.black, size: 18),
-                label: const Text('Send Reset Link',
-                    style: TextStyle(
-                        color: Colors.black,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16)),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFC5A358),
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30)),
-                ),
-              ),
+            _SendResetButton(
+              emailController: _emailController,
+              authService: _authService,
             ),
 
             const SizedBox(height: 20),
@@ -134,6 +121,69 @@ class ForgotPasswordScreen extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SendResetButton extends StatefulWidget {
+  final TextEditingController emailController;
+  final AuthService authService;
+  const _SendResetButton({required this.emailController, required this.authService});
+
+  @override
+  State<_SendResetButton> createState() => _SendResetButtonState();
+}
+
+class _SendResetButtonState extends State<_SendResetButton> {
+  bool _isLoading = false;
+
+  Future<void> _sendResetLink() async {
+    if (widget.emailController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter your email'), backgroundColor: Colors.red),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    try {
+      await widget.authService.forgotPassword(email: widget.emailController.text.trim());
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Reset link sent! Check your email.'),
+            backgroundColor: Color(0xFFC5A358),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to send reset link. Try again.'), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton.icon(
+        onPressed: _isLoading ? null : _sendResetLink,
+        icon: _isLoading
+            ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black))
+            : const Icon(Icons.send, color: Colors.black, size: 18),
+        label: Text(_isLoading ? 'Sending...' : 'Send Reset Link',
+            style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 16)),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFFC5A358),
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
         ),
       ),
     );

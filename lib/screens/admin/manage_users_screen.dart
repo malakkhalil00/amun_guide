@@ -18,33 +18,7 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
   final _filters = ['All', 'Tourist', 'Local', 'Business', 'Banned'];
   final _searchController = TextEditingController();
 
-  final List<Map<String, dynamic>> _users = [
-    {
-      'avatar': AppAssets.sarah,  'name': 'Sarah Ahmed',
-      'email': 'sarah@email.com', 'type': 'Tourist',
-      'joined': 'Oct 2024',       'trips': 3, 'status': 'Active',
-    },
-    {
-      'avatar': AppAssets.david,  'name': 'David Miller',
-      'email': 'david@email.com', 'type': 'Tourist',
-      'joined': 'Sep 2024',       'trips': 1, 'status': 'Active',
-    },
-    {
-      'avatar': AppAssets.anna,   'name': 'Anna K.',
-      'email': 'anna@email.com',  'type': 'Local',
-      'joined': 'Aug 2024',       'trips': 7, 'status': 'Active',
-    },
-    {
-      'avatar': AppAssets.elena,  'name': 'Elena Rossi',
-      'email': 'elena@email.com', 'type': 'Business',
-      'joined': 'Jul 2024',       'trips': 12, 'status': 'Active',
-    },
-    {
-      'avatar': AppAssets.marcus, 'name': 'Marcus L.',
-      'email': 'marcus@email.com','type': 'Tourist',
-      'joined': 'Jun 2024',       'trips': 0, 'status': 'Banned',
-    },
-  ];
+  final List<Map<String, dynamic>> _users = [];
 
   List<Map<String, dynamic>> get _filtered {
     var list = _activeFilter == 0

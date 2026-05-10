@@ -3,10 +3,49 @@
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_assets.dart';
+import '../../core/services/auth_service.dart';
+import '../../core/services/dio_client.dart';
 import '../../core/widgets/amun_app_bar.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
+
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  String _name = 'User';
+  String _email = '';
+  String _phone = '';
+  String _country = '';
+  String _profileImage = '';
+  int _trips = 0;
+  int _reviews = 0;
+  int _points = 0;
+  final _authService = AuthService();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserData();
+  }
+
+  Future<void> _loadUserData() async {
+    final data = await DioClient.getUserData();
+    if (mounted) {
+      setState(() {
+        _name = data['name'] ?? 'User';
+        _email = data['email'] ?? '';
+        _phone = data['phone'] ?? '';
+        _country = data['address'] ?? 'Egypt';
+        _profileImage = data['profile_image'] ?? '';
+        _trips = data['trips_count'] ?? data['trips'] ?? 0;
+        _reviews = data['reviews_count'] ?? data['reviews'] ?? 0;
+        _points = data['points'] ?? 0;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -39,7 +78,11 @@ class ProfileScreen extends StatelessWidget {
                     border: Border.all(color: AppColors.gold, width: 2.5),
                   ),
                   child: ClipOval(
-                    child: Image.asset(AppAssets.sarah, fit: BoxFit.cover,
+                    child: _profileImage.isNotEmpty && _profileImage.startsWith('http')
+                        ? Image.network(_profileImage, fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => const Icon(
+                                Icons.person, color: Colors.white54, size: 50))
+                        : Image.asset(AppAssets.sarah, fit: BoxFit.cover,
                         errorBuilder: (_, __, ___) => const Icon(
                             Icons.person, color: Colors.white54, size: 50)),
                   ),
@@ -55,7 +98,7 @@ class ProfileScreen extends StatelessWidget {
                 ),
               ]),
               const SizedBox(height: 12),
-              const Text('Sarah Ahmed',
+              Text(_name,
                   style: TextStyle(
                       color: Colors.white,
                       fontSize: 20,
@@ -91,11 +134,11 @@ class ProfileScreen extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                _statItem('12', 'Trips'),
+                _statItem('$_trips', 'Trips'),
                 _divider(),
-                _statItem('45', 'Reviews'),
+                _statItem('$_reviews', 'Reviews'),
                 _divider(),
-                _statItem('840', 'Points'),
+                _statItem('$_points', 'Points'),
               ],
             ),
           ),
@@ -105,9 +148,9 @@ class ProfileScreen extends StatelessWidget {
           // ─── Personal Info ───────────────────────────
           _sectionTitle('Personal Info'),
           const SizedBox(height: 12),
-          _infoRow(Icons.email_outlined, 'Email', 'sarah.ahmed@email.com'),
-          _infoRow(Icons.phone_outlined, 'Phone', '+20 100 123 4567'),
-          _infoRow(Icons.flag_outlined, 'Country', 'Egypt'),
+          _infoRow(Icons.email_outlined, 'Email', _email.isEmpty ? 'Not set' : _email),
+          _infoRow(Icons.phone_outlined, 'Phone', _phone.isEmpty ? 'Not set' : _phone),
+          _infoRow(Icons.flag_outlined, 'Country', _country.isEmpty ? 'Egypt' : _country),
           _infoRow(Icons.language_outlined, 'Language', 'Arabic, English'),
 
           const SizedBox(height: 24),
@@ -121,8 +164,9 @@ class ProfileScreen extends StatelessWidget {
               onTap: () => Navigator.pushNamed(context, '/notifications')),
           _settingsItem(Icons.lock_outline, 'Change Password',
               onTap: () => Navigator.pushNamed(context, '/forgot-password')),
+                 _settingsItem(Icons.lock_outline, 'About Us',
+              onTap: () => Navigator.pushNamed(context, '/about-us')),
           _settingsItem(Icons.help_outline, 'Help & Support', onTap: () {}),
-          _settingsItem(Icons.info_outline, 'About Amun Guide', onTap: () {}),
 
           const SizedBox(height: 24),
 
@@ -245,8 +289,13 @@ class ProfileScreen extends StatelessWidget {
                 style: TextStyle(color: Colors.white38)),
           ),
           TextButton(
-            onPressed: () => Navigator.pushNamedAndRemoveUntil(
-                context, '/welcome', (route) => false),
+            onPressed: () async {
+              await _authService.logout();
+              if (mounted) {
+                Navigator.pushNamedAndRemoveUntil(
+                    context, '/welcome', (route) => false);
+              }
+            },
             child: const Text('Log Out',
                 style: TextStyle(
                     color: Colors.redAccent, fontWeight: FontWeight.bold)),

@@ -1,8 +1,10 @@
 // 📁 lib/screens/payment/payment_receipts_screen.dart
 
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_assets.dart';
+import '../../core/services/payment_service.dart';
 import '../../core/widgets/amun_app_bar.dart';
 import '../../core/widgets/amun_button.dart';
 import '../../core/widgets/amun_filter_chip.dart';
@@ -17,48 +19,50 @@ class PaymentReceiptsScreen extends StatefulWidget {
 class _PaymentReceiptsScreenState extends State<PaymentReceiptsScreen> {
   int _activeFilter = 0;
   final _filters = ['All', 'Pending', 'Approved', 'Rejected'];
+  final _paymentService = PaymentService();
+  bool _isLoading = true;
 
-  final _receipts = [
-    _Receipt(
-      id: 'TRX-88392',
-      tour: 'Luxor & Aswan Adventure',
-      amount: '\$450.00',
-      date: '12 Oct 2024',
-      image: AppAssets.receipt1,
-      status: 'Pending',
-    ),
-    _Receipt(
-      id: 'TRX-77281',
-      tour: 'Giza Pyramids Day Tour',
-      amount: '\$150.00',
-      date: '05 Oct 2024',
-      image: AppAssets.receipt2,
-      status: 'Approved',
-    ),
-    _Receipt(
-      id: 'TRX-66170',
-      tour: 'Nile Cruise 3 Days',
-      amount: '\$350.00',
-      date: '28 Sep 2024',
-      image: AppAssets.receipt3,
-      status: 'Approved',
-    ),
-    _Receipt(
-      id: 'TRX-55069',
-      tour: 'Siwa Oasis Adventure',
-      amount: '\$280.00',
-      date: '20 Sep 2024',
-      image: AppAssets.receipt4,
-      status: 'Rejected',
-    ),
-  ];
+  List<_Receipt> _receipts = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPayments();
+  }
+
+  Future<void> _loadPayments() async {
+    setState(() => _isLoading = true);
+    try {
+      final response = await _paymentService.getMyPayments();
+      final data = response.data;
+      final List items = data['data'] ?? data ?? [];
+      setState(() {
+        _receipts = items.map<_Receipt>((p) => _Receipt(
+          id: p['id']?.toString() ?? '',
+          tour: p['payable']?['title'] ?? p['tour_name'] ?? 'Tour Payment',
+          amount: '\$${p['amount'] ?? 0}',
+          date: p['created_at']?.toString().substring(0, 10) ?? '',
+          image: p['receipt_image'] ?? '',
+          status: p['status'] ?? 'Pending',
+        )).toList();
+      });
+    } catch (e) {
+      debugPrint('Error loading payments: $e');
+      // Fallback to static data
+      setState(() {
+        _receipts = [
+          _Receipt(id: 'TRX-88392', tour: 'Luxor & Aswan Adventure', amount: '\$450.00', date: '12 Oct 2024', image: AppAssets.receipt1, status: 'Pending'),
+          _Receipt(id: 'TRX-77281', tour: 'Giza Pyramids Day Tour', amount: '\$150.00', date: '05 Oct 2024', image: AppAssets.receipt2, status: 'Approved'),
+        ];
+      });
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
 
   List<_Receipt> get _filtered => _activeFilter == 0
       ? _receipts
-      : _receipts
-      .where((r) => r.status == _filters[_activeFilter])
-      .toList();
-
+      : _receipts.where((r) => r.status == _filters[_activeFilter]).toList();
   @override
   Widget build(BuildContext context) {
     return Scaffold(

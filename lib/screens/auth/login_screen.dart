@@ -2,7 +2,10 @@
 // 📁 lib/screens/auth/login_screen.dart
 // ============================================
 
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import '../../core/services/auth_service.dart';
+import '../../core/services/dio_client.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -15,6 +18,73 @@ class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
+  bool _isLoading = false;
+  final _authService = AuthService();
+
+  Future<void> _login() async {
+    if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
+      _showSnackBar('Please fill in all fields', isError: true);
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      final response = await _authService.login(
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+      );
+
+      final data = response.data;
+      final token = data['token'] ?? data['data']?['token'] ?? '';
+      final user = data['user'] ?? data['data']?['user'] ?? {};
+
+      if (token.toString().isNotEmpty) {
+        await DioClient.saveToken(token.toString());
+        await DioClient.saveUserData(
+          name: user['name'] ?? '',
+          email: user['email'] ?? _emailController.text.trim(),
+          phone: user['phone'] ?? '',
+          address: user['address'] ?? '',
+          profileImage: user['profile_image'] ?? '',
+          role: user['role'] ?? 'tourist',
+          userId: user['id'] ?? 0,
+        );
+
+        if (mounted) {
+          final role = user['role'] ?? 'tourist';
+          if (role == 'admin') {
+            Navigator.pushReplacementNamed(context, '/admin');
+          } else {
+            Navigator.pushReplacementNamed(context, '/home');
+          }
+        }
+      } else {
+        _showSnackBar('Login failed. Please try again.', isError: true);
+      }
+    } on DioException catch (e) {
+      String errorMsg = 'Login failed. Please check your credentials.';
+      if (e.response?.data != null && e.response!.data is Map) {
+        final errData = e.response!.data as Map;
+        errorMsg = errData['message']?.toString() ?? errData['error']?.toString() ?? errorMsg;
+      }
+      _showSnackBar(errorMsg, isError: true);
+    } catch (e) {
+      _showSnackBar('Login failed. Please check your credentials.', isError: true);
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  void _showSnackBar(String message, {bool isError = false}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError ? Colors.red : const Color(0xFFC5A358),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -134,8 +204,7 @@ class _LoginScreenState extends State<LoginScreen> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () => Navigator.pushReplacementNamed(
-                    context, '/home'),
+                onPressed: _isLoading ? null : _login,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFFC5A358),
                   foregroundColor: Colors.black,
@@ -144,9 +213,18 @@ class _LoginScreenState extends State<LoginScreen> {
                       borderRadius: BorderRadius.circular(30)),
                   elevation: 0,
                 ),
-                child: const Text('Log In',
-                    style: TextStyle(
-                        fontWeight: FontWeight.bold, fontSize: 17)),
+                child: _isLoading
+                    ? const SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.black,
+                        ),
+                      )
+                    : const Text('Log In',
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 17)),
               ),
             ),
 

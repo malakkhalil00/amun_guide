@@ -2,7 +2,12 @@
 // 📁 lib/screens/auth/register_screen.dart
 // ============================================
 
+import 'dart:io';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import '../../core/services/auth_service.dart';
+import '../../core/services/dio_client.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -15,9 +20,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _phoneController = TextEditingController();
   bool _obscurePassword = true;
-  String _selectedCountry = 'United States';
-  String _selectedFlag = '🇺🇸';
+  bool _isLoading = false;
+  String? _profileImagePath;
+  String _selectedCountry = 'Egypt';
+  String _selectedFlag = '🇪🇬';
+  final _authService = AuthService();
 
   final List<Map<String, String>> _countries = [
     {'flag': '🇺🇸', 'name': 'United States'},
@@ -28,6 +37,88 @@ class _RegisterScreenState extends State<RegisterScreen> {
     {'flag': '🇸🇦', 'name': 'Saudi Arabia'},
     {'flag': '🇦🇪', 'name': 'UAE'},
   ];
+
+  Future<void> _pickImage() async {
+    final picked = await ImagePicker().pickImage(source: ImageSource.gallery);
+    if (picked != null) {
+      setState(() => _profileImagePath = picked.path);
+    }
+  }
+
+  Future<void> _register() async {
+    if (_nameController.text.isEmpty ||
+        _emailController.text.isEmpty ||
+        _passwordController.text.isEmpty ||
+        _phoneController.text.isEmpty) {
+      _showSnackBar('Please fill in all fields', isError: true);
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      final response = await _authService.register(
+        name: _nameController.text.trim(),
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+        phone: _phoneController.text.trim(),
+        address: '$_selectedCountry',
+        profileImagePath: _profileImagePath,
+      );
+
+      final data = response.data;
+      final token = data['token'] ?? data['data']?['token'] ?? '';
+      final user = data['user'] ?? data['data']?['user'] ?? {};
+
+      if (token.toString().isNotEmpty) {
+        await DioClient.saveToken(token.toString());
+        await DioClient.saveUserData(
+          name: user['name'] ?? _nameController.text.trim(),
+          email: user['email'] ?? _emailController.text.trim(),
+          phone: user['phone'] ?? _phoneController.text.trim(),
+          address: user['address'] ?? _selectedCountry,
+          profileImage: user['profile_image'] ?? '',
+          role: user['role'] ?? 'tourist',
+          userId: user['id'] ?? 0,
+        );
+
+        if (mounted) {
+          Navigator.pushReplacementNamed(context, '/home');
+        }
+      } else {
+        _showSnackBar('Registration successful! Please login.', isError: false);
+        if (mounted) Navigator.pop(context);
+      }
+    } on DioException catch (e) {
+      String errorMsg = 'Registration failed. Please try again.';
+      if (e.response?.data != null && e.response!.data is Map) {
+        final errData = e.response!.data as Map;
+        if (errData['errors'] != null && errData['errors'] is Map) {
+          final errors = errData['errors'] as Map;
+          errorMsg = errors.values.first is List
+              ? (errors.values.first as List).first.toString()
+              : errors.values.first.toString();
+        } else {
+          errorMsg = errData['message']?.toString() ?? errorMsg;
+        }
+      }
+      _showSnackBar(errorMsg, isError: true);
+    } catch (e) {
+      _showSnackBar('Registration failed. Please try again.', isError: true);
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  void _showSnackBar(String message, {bool isError = false}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError ? Colors.red : const Color(0xFFC5A358),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -52,7 +143,42 @@ class _RegisterScreenState extends State<RegisterScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SizedBox(height: 32),
+            const SizedBox(height: 20),
+
+            // ===== Profile Image =====
+            Center(
+              child: GestureDetector(
+                onTap: _pickImage,
+                child: Stack(
+                  children: [
+                    CircleAvatar(
+                      radius: 45,
+                      backgroundColor: const Color(0xFF2A2A1E),
+                      backgroundImage: _profileImagePath != null
+                          ? FileImage(File(_profileImagePath!))
+                          : null,
+                      child: _profileImagePath == null
+                          ? const Icon(Icons.person, color: Colors.white38, size: 40)
+                          : null,
+                    ),
+                    Positioned(
+                      bottom: 0,
+                      right: 0,
+                      child: Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFC5A358),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.camera_alt, color: Colors.black, size: 14),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 24),
 
             // ===== Title =====
             const Text(
@@ -73,16 +199,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
             ),
 
-            const SizedBox(height: 40),
+            const SizedBox(height: 30),
 
             // ===== Full Name =====
             _label('Full Name'),
             const SizedBox(height: 10),
-            _buildTextField(
-              controller: _nameController,
-              hint: 'John Doe',
-            ),
-
+            _buildTextField(controller: _nameController, hint: 'John Doe'),
+            
             const SizedBox(height: 20),
 
             // ===== Email =====
@@ -92,6 +215,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
               controller: _emailController,
               hint: 'john@example.com',
               keyboardType: TextInputType.emailAddress,
+            ),
+
+            const SizedBox(height: 20),
+
+            // ===== Phone =====
+            _label('Phone'),
+            const SizedBox(height: 10),
+            _buildTextField(
+              controller: _phoneController,
+              hint: '01012345678',
+              keyboardType: TextInputType.phone,
             ),
 
             const SizedBox(height: 20),
@@ -107,12 +241,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
               child: TextField(
                 controller: _passwordController,
                 obscureText: _obscurePassword,
-                style:
-                const TextStyle(color: Colors.white, fontSize: 15),
+                style: const TextStyle(color: Colors.white, fontSize: 15),
                 decoration: InputDecoration(
                   hintText: '••••••••',
-                  hintStyle: const TextStyle(
-                      color: Colors.white38, fontSize: 15),
+                  hintStyle: const TextStyle(color: Colors.white38, fontSize: 15),
                   suffixIcon: IconButton(
                     icon: Icon(
                       _obscurePassword
@@ -120,12 +252,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           : Icons.visibility_outlined,
                       color: Colors.white38,
                     ),
-                    onPressed: () => setState(
-                            () => _obscurePassword = !_obscurePassword),
+                    onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                   ),
                   border: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 20, vertical: 18),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
                 ),
               ),
             ),
@@ -138,24 +268,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
             GestureDetector(
               onTap: () => _showCountryPicker(context),
               child: Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 20, vertical: 18),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
                 decoration: BoxDecoration(
                   color: const Color(0xFF2A2A1E),
                   borderRadius: BorderRadius.circular(30),
                 ),
                 child: Row(
                   children: [
-                    Text(_selectedFlag,
-                        style: const TextStyle(fontSize: 20)),
+                    Text(_selectedFlag, style: const TextStyle(fontSize: 20)),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(_selectedCountry,
-                          style: const TextStyle(
-                              color: Colors.white, fontSize: 15)),
+                          style: const TextStyle(color: Colors.white, fontSize: 15)),
                     ),
-                    const Icon(Icons.keyboard_arrow_down,
-                        color: Colors.white38),
+                    const Icon(Icons.keyboard_arrow_down, color: Colors.white38),
                   ],
                 ),
               ),
@@ -167,8 +293,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () => Navigator.pushReplacementNamed(
-                    context, '/home'),
+                onPressed: _isLoading ? null : _register,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFFC5A358),
                   foregroundColor: Colors.black,
@@ -177,16 +302,24 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       borderRadius: BorderRadius.circular(30)),
                   elevation: 0,
                 ),
-                child: const Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text('Create Account',
-                        style: TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 17)),
-                    SizedBox(width: 8),
-                    Icon(Icons.arrow_forward, size: 18),
-                  ],
-                ),
+                child: _isLoading
+                    ? const SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.black,
+                        ),
+                      )
+                    : const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text('Create Account',
+                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17)),
+                          SizedBox(width: 8),
+                          Icon(Icons.arrow_forward, size: 18),
+                        ],
+                      ),
               ),
             ),
 
@@ -201,8 +334,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     children: [
                       TextSpan(
                           text: 'Already have an account? ',
-                          style: TextStyle(
-                              color: Colors.white54, fontSize: 14)),
+                          style: TextStyle(color: Colors.white54, fontSize: 14)),
                       TextSpan(
                           text: 'Login',
                           style: TextStyle(
@@ -241,10 +373,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
           ),
           const SizedBox(height: 16),
           ..._countries.map((c) => ListTile(
-            leading: Text(c['flag']!,
-                style: const TextStyle(fontSize: 24)),
-            title: Text(c['name']!,
-                style: const TextStyle(color: Colors.white)),
+            leading: Text(c['flag']!, style: const TextStyle(fontSize: 24)),
+            title: Text(c['name']!, style: const TextStyle(color: Colors.white)),
             onTap: () {
               setState(() {
                 _selectedCountry = c['name']!;
@@ -280,11 +410,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
         style: const TextStyle(color: Colors.white, fontSize: 15),
         decoration: InputDecoration(
           hintText: hint,
-          hintStyle:
-          const TextStyle(color: Colors.white38, fontSize: 15),
+          hintStyle: const TextStyle(color: Colors.white38, fontSize: 15),
           border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(
-              horizontal: 20, vertical: 18),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
         ),
       ),
     );

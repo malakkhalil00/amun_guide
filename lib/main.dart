@@ -17,6 +17,7 @@ import 'screens/auth/reset_password_screen.dart';
 
 // Tourist
 import 'screens/tourist/main_navigation.dart';
+import 'screens/tourist/profile_screen.dart';
 import 'screens/tourist/notifications_screen.dart';
 import 'screens/tourist/edit_profile_screen.dart';
 import 'screens/tourist/saved_places_screen.dart';
@@ -45,6 +46,7 @@ import 'screens/admin/manage_users_screen.dart';
 // General
 import 'screens/general/community_screen.dart';
 import 'screens/general/post_details_screen.dart';
+import 'screens/general/about_Us_screen.dart';
 // import 'screens/payment/...';
 // import 'screens/admin/...';
 // import 'screens/general/...';
@@ -85,7 +87,7 @@ class AmunGuideApp extends StatelessWidget {
         '/login':           (ctx) => const LoginScreen(),
         '/register':        (ctx) => const RegisterScreen(),
         '/forgot-password': (ctx) => ForgotPasswordScreen(),
-        '/reset-password':  (ctx) => ResetPasswordScreen(),
+        '/reset-password':  (ctx) => const ResetPasswordScreen(),
 
         // ══════════════════════════════════════
         // MAIN APP
@@ -96,6 +98,7 @@ class AmunGuideApp extends StatelessWidget {
         // TOURIST
         // ══════════════════════════════════════
         '/notifications':   (ctx) => const NotificationsScreen(),
+        '/profile':          (ctx) => const ProfileScreen(),
         '/edit-profile':    (ctx) => const EditProfileScreen(),
         '/saved-places':    (ctx) => const SavedPlacesScreen(),
 
@@ -133,6 +136,7 @@ class AmunGuideApp extends StatelessWidget {
         // ══════════════════════════════════════
         '/community':     (ctx) => const CommunityScreen(),
         '/post-details':  (ctx) => const PostDetailsScreen(),
+        '/about-us':      (ctx) => const AboutUsScreen(),
       },
     );
   }

@@ -67,20 +67,20 @@ class AdminDashboardScreen extends StatelessWidget {
 
                 // ─── Stats Row ────────────────────
                 Row(children: [
-                  _statCard('24', 'Total Tours', Icons.map_outlined),
+                  _statCard('0', 'Total Tours', Icons.map_outlined),
                   const SizedBox(width: 12),
-                  _statCard('8', 'Pending\nPayments', Icons.pending_outlined),
+                  _statCard('0', 'Pending\nPayments', Icons.pending_outlined),
                   const SizedBox(width: 12),
-                  _statCard('142', 'Total Users', Icons.people_outline),
+                  _statCard('0', 'Total Users', Icons.people_outline),
                 ]),
 
                 const SizedBox(height: 12),
 
                 Row(children: [
-                  _statCard('\$12.4K', 'Revenue', Icons.attach_money,
+                  _statCard('\$0', 'Revenue', Icons.attach_money,
                       wide: true),
                   const SizedBox(width: 12),
-                  _statCard('4.8', 'Avg Rating', Icons.star_outline,
+                  _statCard('0.0', 'Avg Rating', Icons.star_outline,
                       wide: true),
                 ]),
 
@@ -143,33 +143,12 @@ class AdminDashboardScreen extends StatelessWidget {
                         fontWeight: FontWeight.bold)),
                 const SizedBox(height: 14),
 
-                _activityItem(
-                  icon: Icons.upload_file,
-                  color: AppColors.gold,
-                  title: 'New receipt uploaded',
-                  subtitle: 'Sarah Ahmed — TRX-88392 · \$450',
-                  time: '2m ago',
-                ),
-                _activityItem(
-                  icon: Icons.person_add_outlined,
-                  color: Colors.blueAccent,
-                  title: 'New user registered',
-                  subtitle: 'David Miller joined as Tourist',
-                  time: '15m ago',
-                ),
-                _activityItem(
-                  icon: Icons.check_circle_outline,
-                  color: Colors.green,
-                  title: 'Payment approved',
-                  subtitle: 'TRX-77281 — Giza Tour · \$150',
-                  time: '1h ago',
-                ),
-                _activityItem(
-                  icon: Icons.tour_outlined,
-                  color: Colors.purpleAccent,
-                  title: 'New tour created',
-                  subtitle: 'Siwa Oasis Adventure — 3D2N',
-                  time: '3h ago',
+                // Activity list waiting for API integration
+                const Center(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(vertical: 20),
+                    child: Text('No recent activity available', style: TextStyle(color: Colors.white54)),
+                  )
                 ),
               ]),
             ),

@@ -17,33 +17,7 @@ class _ManageToursScreenState extends State<ManageToursScreen> {
   int _activeFilter = 0;
   final _filters = ['All', 'Active', 'Draft', 'Archived'];
 
-  final List<Map<String, dynamic>> _tours = [
-    {
-      'img': AppAssets.pyramids, 'name': 'Giza Pyramids Day Tour',
-      'location': 'Cairo', 'price': '\$150', 'days': 1,
-      'bookings': 24, 'rating': '4.9', 'status': 'Active',
-    },
-    {
-      'img': AppAssets.karnak, 'name': 'Luxor & Aswan Adventure',
-      'location': 'Luxor', 'price': '\$450', 'days': 3,
-      'bookings': 18, 'rating': '4.8', 'status': 'Active',
-    },
-    {
-      'img': AppAssets.nileCruise, 'name': 'Nile Cruise 3 Days',
-      'location': 'Luxor → Aswan', 'price': '\$350', 'days': 3,
-      'bookings': 12, 'rating': '4.9', 'status': 'Active',
-    },
-    {
-      'img': AppAssets.siwa, 'name': 'Siwa Oasis Adventure',
-      'location': 'Siwa', 'price': '\$280', 'days': 2,
-      'bookings': 0, 'rating': '-', 'status': 'Draft',
-    },
-    {
-      'img': AppAssets.abuSimbel, 'name': 'Abu Simbel Day Trip',
-      'location': 'Aswan', 'price': '\$200', 'days': 1,
-      'bookings': 8, 'rating': '4.7', 'status': 'Archived',
-    },
-  ];
+  final List<Map<String, dynamic>> _tours = [];
 
   List<Map<String, dynamic>> get _filtered => _activeFilter == 0
       ? _tours
