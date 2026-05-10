@@ -72,7 +72,7 @@ class _PlaceCardState extends State<PlaceCard> {
     try {
       final likesService = LikesService();
       await likesService.toggleLike(
-        likeableType: 'Place',
+        likeableType: 'places',
         likeableId: widget.id!,
       );
     } catch (e) {

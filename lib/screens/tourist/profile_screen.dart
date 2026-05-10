@@ -164,8 +164,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
               onTap: () => Navigator.pushNamed(context, '/notifications')),
           _settingsItem(Icons.lock_outline, 'Change Password',
               onTap: () => Navigator.pushNamed(context, '/forgot-password')),
+                 _settingsItem(Icons.lock_outline, 'About Us',
+              onTap: () => Navigator.pushNamed(context, '/about-us')),
           _settingsItem(Icons.help_outline, 'Help & Support', onTap: () {}),
-          _settingsItem(Icons.info_outline, 'About Amun Guide', onTap: () {}),
 
           const SizedBox(height: 24),
 

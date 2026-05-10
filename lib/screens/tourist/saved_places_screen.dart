@@ -62,7 +62,7 @@ class _SavedPlacesScreenState extends State<SavedPlacesScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.bgDark,
-      appBar: const AmunAppBar(title: 'Saved Places', showBack: false),
+      appBar: const AmunAppBar(title: 'Saved Places', showBack: true),
       body: _isLoading
           ? const Center(
               child: CircularProgressIndicator(color: AppColors.gold),

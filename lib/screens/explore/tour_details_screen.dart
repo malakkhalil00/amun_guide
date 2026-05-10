@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/services/tours_service.dart';
 import '../../core/services/tour_booking_service.dart';
+import '../../core/constants/app_assets.dart';
 
 class TourDetailsScreen extends StatefulWidget {
   const TourDetailsScreen({super.key});
@@ -51,7 +52,7 @@ class _TourDetailsScreenState extends State<TourDetailsScreen> {
         _price = args['price']?.toString() ?? '';
         _location =
             args['loc']?.toString() ?? args['location']?.toString() ?? '';
-       _image = args['img']?.toString() ?? args['image']?.toString() ?? '';
+        _image = args['img']?.toString() ?? args['image']?.toString() ?? '';
         _rating = args['rating']?.toString() ?? '';
       });
       tourId = _tourId;
@@ -85,16 +86,35 @@ class _TourDetailsScreenState extends State<TourDetailsScreen> {
 
             // Places included
             if (tour['places'] != null && tour['places'] is List) {
-              _places = (tour['places'] as List)
-                  .map<Map<String, dynamic>>(
-                    (p) => {
-                      'id': p['id'],
-                      'img': p['image'] ?? p['image_url'] ?? '',
-                      'name': p['title'] ?? p['name'] ?? '',
-                      'desc': p['description'] ?? '',
-                    },
-                  )
-                  .toList();
+              final placeImages = [
+                AppAssets.pyramids,
+                AppAssets.karnak,
+                AppAssets.abuSimbel,
+                AppAssets.alexandria,
+                AppAssets.philae,
+                AppAssets.siwa,
+                AppAssets.nileSunset,
+                AppAssets.luxorNight,
+                AppAssets.valley,
+                AppAssets.museum,
+              ];
+              final placesList = tour['places'] as List;
+              _places = placesList.asMap().entries.map<Map<String, dynamic>>((
+                entry,
+              ) {
+                final i = entry.key;
+                final p = entry.value;
+                return {
+                  'id': p['id'],
+                  'img': placeImages[i % placeImages.length],
+                  'name': p['title'] ?? p['name'] ?? '',
+                  'desc': p['description'] ?? '',
+                  'loc': p['location'] ?? 'Egypt',
+                  'rating': (p['rating'] ?? 0).toString(),
+                  'price': '\$${p['ticket_price'] ?? 0}',
+                  'cat': p['category'] ?? 'Temples',
+                };
+              }).toList();
             }
           });
         }
@@ -123,14 +143,22 @@ class _TourDetailsScreenState extends State<TourDetailsScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Booking failed: ${e.toString().contains('already') ? 'Already booked' : 'Please try again'}',
+        final msg = e.toString();
+        final alreadyBooked = msg.contains('already') || msg.contains('422');
+
+        if (alreadyBooked) {
+          // لو محجوز بالفعل، روح للـ success screen على طول
+          Navigator.pushNamed(context, '/payment-success');
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Booking failed: ${msg.contains('passed') ? 'Tour date has passed' : 'Please try again'}',
+              ),
+              backgroundColor: Colors.red,
             ),
-            backgroundColor: Colors.red,
-          ),
-        );
+          );
+        }
       }
     } finally {
       if (mounted) setState(() => _isBooking = false);
@@ -710,7 +738,7 @@ class _TourDetailsScreenState extends State<TourDetailsScreen> {
 
     return GestureDetector(
       onTap: () =>
-          Navigator.pushNamed(context, '/tour-', arguments: place),
+          Navigator.pushNamed(context, '/place-details', arguments: place),
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         child: Row(
@@ -768,7 +796,7 @@ class _TourDetailsScreenState extends State<TourDetailsScreen> {
             ),
             const Icon(
               Icons.arrow_forward_ios,
-              color: Colors.white24,
+              color: Color(0xffc5a358),
               size: 16,
             ),
           ],
