@@ -111,11 +111,9 @@ class _ExploreScreenState extends State<ExploreScreen> {
   // FILTER BY CATEGORY — calls API
   // ══════════════════════════════════════
 
-  Future<void> _onFilterChanged(int index) async {
-  setState(() {
-    _activeFilter = index;
-  });
-  // الفلتر بيتعمل local عن طريق _filtered getter — مش محتاج API call
+Future<void> _onFilterChanged(int index) async {
+  setState(() => _activeFilter = index);
+  if (index == 0) await _loadPlaces();
 }
 
   // ══════════════════════════════════════

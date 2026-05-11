@@ -52,7 +52,7 @@ class _TourDetailsScreenState extends State<TourDetailsScreen> {
         _price = args['price']?.toString() ?? '';
         _location =
             args['loc']?.toString() ?? args['location']?.toString() ?? '';
-       _image = args['img']?.toString() ?? args['image']?.toString() ?? '';
+        _image = args['img']?.toString() ?? args['image']?.toString() ?? '';
         _rating = args['rating']?.toString() ?? '';
       });
       tourId = _tourId;
@@ -86,34 +86,36 @@ class _TourDetailsScreenState extends State<TourDetailsScreen> {
 
             // Places included
             if (tour['places'] != null && tour['places'] is List) {
-  final placeImages = [
-    AppAssets.pyramids,
-    AppAssets.karnak,
-    AppAssets.abuSimbel,
-    AppAssets.alexandria,
-    AppAssets.philae,
-    AppAssets.siwa,
-    AppAssets.nileSunset,
-    AppAssets.luxorNight,
-    AppAssets.valley,
-    AppAssets.museum,
-  ];
-  final placesList = tour['places'] as List;
-  _places = placesList.asMap().entries.map<Map<String, dynamic>>((entry) {
-    final i = entry.key;
-    final p = entry.value;
-    return {
-      'id': p['id'],
-      'img': placeImages[i % placeImages.length],
-      'name': p['title'] ?? p['name'] ?? '',
-      'desc': p['description'] ?? '',
-      'loc': p['location'] ?? 'Egypt',
-      'rating': (p['rating'] ?? 0).toString(),
-      'price': '\$${p['ticket_price'] ?? 0}',
-      'cat': p['category'] ?? 'Temples',
-    };
-  }).toList();
-}
+              final placeImages = [
+                AppAssets.pyramids,
+                AppAssets.karnak,
+                AppAssets.abuSimbel,
+                AppAssets.alexandria,
+                AppAssets.philae,
+                AppAssets.siwa,
+                AppAssets.nileSunset,
+                AppAssets.luxorNight,
+                AppAssets.valley,
+                AppAssets.museum,
+              ];
+              final placesList = tour['places'] as List;
+              _places = placesList.asMap().entries.map<Map<String, dynamic>>((
+                entry,
+              ) {
+                final i = entry.key;
+                final p = entry.value;
+                return {
+                  'id': p['id'],
+                  'img': placeImages[i % placeImages.length],
+                  'name': p['title'] ?? p['name'] ?? '',
+                  'desc': p['description'] ?? '',
+                  'loc': p['location'] ?? 'Egypt',
+                  'rating': (p['rating'] ?? 0).toString(),
+                  'price': '\$${p['ticket_price'] ?? 0}',
+                  'cat': p['category'] ?? 'Temples',
+                };
+              }).toList();
+            }
           });
         }
       } catch (e) {
@@ -139,24 +141,26 @@ class _TourDetailsScreenState extends State<TourDetailsScreen> {
       if (mounted) {
         Navigator.pushNamed(context, '/payment-success');
       }
-   } catch (e) {
-  if (mounted) {
-    final msg = e.toString();
-    final alreadyBooked = msg.contains('already') || msg.contains('422');
-    
-    if (alreadyBooked) {
-      // لو محجوز بالفعل، روح للـ success screen على طول
-      Navigator.pushNamed(context, '/payment-success');
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Booking failed: ${msg.contains('passed') ? 'Tour date has passed' : 'Please try again'}'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
-  }
-}finally {
+    } catch (e) {
+      if (mounted) {
+        final msg = e.toString();
+        final alreadyBooked = msg.contains('already') || msg.contains('422');
+
+        if (alreadyBooked) {
+          // لو محجوز بالفعل، روح للـ success screen على طول
+          Navigator.pushNamed(context, '/payment-success');
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Booking failed: ${msg.contains('passed') ? 'Tour date has passed' : 'Please try again'}',
+              ),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } finally {
       if (mounted) setState(() => _isBooking = false);
     }
   }

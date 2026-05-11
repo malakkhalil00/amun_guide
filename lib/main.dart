@@ -47,7 +47,7 @@ import 'screens/admin/manage_users_screen.dart';
 // General
 import 'screens/general/community_screen.dart';
 import 'screens/general/post_details_screen.dart';
-import 'screens/general/about_us_screen.dart';
+import 'screens/general/about_Us_screen.dart';
 // import 'screens/payment/...';
 // import 'screens/admin/...';
 // import 'screens/general/...';
@@ -137,7 +137,7 @@ class AmunGuideApp extends StatelessWidget {
         // ══════════════════════════════════════
         '/community':     (ctx) => const CommunityScreen(),
         '/post-details':  (ctx) => const PostDetailsScreen(),
-        '/about-us':      (ctx) => const AboutUsScreen()
+        '/about-us':      (ctx) => const AboutUsScreen(),
       },
     );
   }

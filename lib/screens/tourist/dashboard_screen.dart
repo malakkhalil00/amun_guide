@@ -86,26 +86,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
             AppAssets.alexandria,
             AppAssets.philae,
           ];
-          _tours = items
-              .take(5)
-              .toList()
-              .asMap()
-              .entries
-              .map<Map<String, dynamic>>((entry) {
-                final i = entry.key;
-                final t = entry.value;
-                return {
-                  'id': t['id'],
-                  'img': images[i % images.length],
-                  'isNetwork': false,
-                  'name': t['title'] ?? t['name'] ?? '',
-                  'loc': t['location'] ?? '',
-                  'rating': (t['rating'] ?? 0).toString(),
-                  'price': '\$${t['price'] ?? 0}/pax',
-                  'tag': '${t['duration_days'] ?? 1}D',
-                };
-              })
-              .toList();
+          _tours = items.take(5).toList().asMap().entries.map<Map<String, dynamic>>((entry) {
+            final i = entry.key;
+            final t = entry.value;
+            return {
+              'id': t['id'],
+              'img': images[i % images.length],
+              'isNetwork': false,
+              'name': t['title'] ?? t['name'] ?? '',
+              'loc': t['location'] ?? '',
+              'rating': (t['rating'] ?? 0).toString(),
+              'price': '\$${t['price'] ?? 0}/pax',
+              'tag': '${t['duration_days'] ?? 1}D',
+            };
+          }).toList();
         });
       }
     } catch (e) {
@@ -127,25 +121,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
             AppAssets.nileSunset,
             AppAssets.valley,
           ];
-          _places = items
-              .take(3)
-              .toList()
-              .asMap()
-              .entries
-              .map<Map<String, dynamic>>((entry) {
-                final i = entry.key;
-                final p = entry.value;
-                return {
-                  'id': p['id'],
-                  'img': images[i % images.length],
-                  'isNetwork': false,
-                  'name': p['title'] ?? p['name'] ?? '',
-                  'loc': p['location'] ?? '',
-                  'rating': (p['rating'] ?? 0).toString(),
-                  'price': '\$${p['ticket_price'] ?? 0}',
-                };
-              })
-              .toList();
+          _places = items.take(3).toList().asMap().entries.map<Map<String, dynamic>>((entry) {
+            final i = entry.key;
+            final p = entry.value;
+            return {
+              'id': p['id'],
+              'img': images[i % images.length],
+              'isNetwork': false,
+              'name': p['title'] ?? p['name'] ?? '',
+              'loc': p['location'] ?? '',
+              'rating': (p['rating'] ?? 0).toString(),
+              'price': '\$${p['ticket_price'] ?? 0}',
+            };
+          }).toList();
         });
       }
     } catch (e) {
@@ -172,10 +160,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
           setState(() {
             _upcomingTrip = {
               'id': upcoming['id'],
-              'date':
-                  upcoming['booking_date'] ??
-                  upcoming['created_at']?.split('T').first ??
-                  'Upcoming',
+              'date': upcoming['booking_date'] ??
+                  upcoming['created_at']?.split('T').first ?? 'Upcoming',
               'tour_name': tour['title'] ?? tour['name'] ?? 'Tour',
               'status': upcoming['status'] ?? 'pending',
             };
@@ -219,15 +205,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
       final List placeItems = placesData['data'] ?? placesData ?? [];
 
       final allImages = [
-        AppAssets.pyramids,
-        AppAssets.karnak,
-        AppAssets.abuSimbel,
-        AppAssets.alexandria,
-        AppAssets.philae,
-        AppAssets.siwa,
-        AppAssets.nileSunset,
-        AppAssets.valley,
-        AppAssets.museum,
+        AppAssets.pyramids, AppAssets.karnak, AppAssets.abuSimbel,
+        AppAssets.alexandria, AppAssets.philae, AppAssets.siwa,
+        AppAssets.nileSunset, AppAssets.valley, AppAssets.museum,
         AppAssets.luxorNight,
       ];
 
@@ -361,11 +341,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           image: place['img'] ?? '',
                           name: place['name'] ?? '',
                           location: place['loc'] ?? '',
-                          stars:
-                              double.tryParse(
-                                place['rating'] ?? '0',
-                              )?.toInt() ??
-                              5,
+                          stars: double.tryParse(place['rating'] ?? '0')?.toInt() ?? 5,
                           price: place['price'] ?? '',
                           onTap: () => Navigator.pushNamed(
                             context,
@@ -415,18 +391,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     const SizedBox(height: 4),
                     Row(
                       children: [
-                        const Icon(
-                          Icons.stars,
-                          color: AppColors.gold,
-                          size: 14,
-                        ),
+                        const Icon(Icons.stars, color: AppColors.gold, size: 14),
                         const SizedBox(width: 4),
                         Text(
                           '$_points points',
-                          style: const TextStyle(
-                            color: AppColors.gold,
-                            fontSize: 13,
-                          ),
+                          style: const TextStyle(color: AppColors.gold, fontSize: 13),
                         ),
                       ],
                     ),
@@ -443,8 +412,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     border: Border.all(color: AppColors.gold, width: 2),
                   ),
                   child: ClipOval(
-                    child:
-                        _userImage.isNotEmpty && _userImage.startsWith('http')
+                    child: _userImage.isNotEmpty && _userImage.startsWith('http')
                         ? Image.network(
                             _userImage,
                             fit: BoxFit.cover,
@@ -582,10 +550,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           fit: BoxFit.cover,
                           errorBuilder: (_, __, ___) => Container(
                             color: const Color(0xFF2A2520),
-                            child: const Icon(
-                              Icons.image,
-                              color: Colors.white24,
-                            ),
+                            child: const Icon(Icons.image, color: Colors.white24),
                           ),
                         ),
                       ),
@@ -600,9 +565,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             children: [
                               Container(
                                 padding: const EdgeInsets.symmetric(
-                                  horizontal: 7,
-                                  vertical: 2,
-                                ),
+                                    horizontal: 7, vertical: 2),
                                 decoration: BoxDecoration(
                                   color: isTour
                                       ? AppColors.gold.withOpacity(0.15)
@@ -612,9 +575,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 child: Text(
                                   isTour ? 'Tour' : 'Place',
                                   style: TextStyle(
-                                    color: isTour
-                                        ? AppColors.gold
-                                        : Colors.teal,
+                                    color: isTour ? AppColors.gold : Colors.teal,
                                     fontSize: 10,
                                     fontWeight: FontWeight.bold,
                                   ),
@@ -624,9 +585,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 const SizedBox(width: 6),
                                 Container(
                                   padding: const EdgeInsets.symmetric(
-                                    horizontal: 7,
-                                    vertical: 2,
-                                  ),
+                                      horizontal: 7, vertical: 2),
                                   decoration: BoxDecoration(
                                     color: Colors.white10,
                                     borderRadius: BorderRadius.circular(6),
@@ -634,9 +593,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   child: Text(
                                     item['tag'] ?? '',
                                     style: const TextStyle(
-                                      color: Colors.white54,
-                                      fontSize: 10,
-                                    ),
+                                        color: Colors.white54, fontSize: 10),
                                   ),
                                 ),
                               ],
@@ -656,18 +613,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           const SizedBox(height: 3),
                           Row(
                             children: [
-                              const Icon(
-                                Icons.location_on,
-                                color: Colors.white38,
-                                size: 12,
-                              ),
+                              const Icon(Icons.location_on,
+                                  color: Colors.white38, size: 12),
                               const SizedBox(width: 3),
                               Text(
                                 item['loc'] ?? '',
                                 style: const TextStyle(
-                                  color: Colors.white38,
-                                  fontSize: 11,
-                                ),
+                                    color: Colors.white38, fontSize: 11),
                               ),
                             ],
                           ),
@@ -677,18 +629,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             children: [
                               Row(
                                 children: [
-                                  const Icon(
-                                    Icons.star,
-                                    color: AppColors.gold,
-                                    size: 12,
-                                  ),
+                                  const Icon(Icons.star,
+                                      color: AppColors.gold, size: 12),
                                   const SizedBox(width: 3),
                                   Text(
                                     item['rating'] ?? '0',
                                     style: const TextStyle(
-                                      color: Colors.white54,
-                                      fontSize: 11,
-                                    ),
+                                        color: Colors.white54, fontSize: 11),
                                   ),
                                 ],
                               ),
@@ -705,11 +652,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         ],
                       ),
                     ),
-                    const Icon(
-                      Icons.arrow_forward_ios,
-                      color: Colors.white12,
-                      size: 14,
-                    ),
+                    const Icon(Icons.arrow_forward_ios,
+                        color: Colors.white12, size: 14),
                   ],
                 ),
               ),
@@ -736,8 +680,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final statusColor = status == 'APPROVED'
         ? Colors.green
         : status == 'PENDING'
-        ? AppColors.gold
-        : Colors.orange;
+            ? AppColors.gold
+            : Colors.orange;
 
     return Container(
       padding: const EdgeInsets.all(18),
@@ -756,17 +700,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
               const Text(
                 'Upcoming Trip',
                 style: TextStyle(
-                  color: Colors.white54,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                ),
+                    color: Colors.white54,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500),
               ),
               const Spacer(),
               Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 4,
-                ),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
                   color: statusColor.withOpacity(0.15),
                   borderRadius: BorderRadius.circular(20),
@@ -835,18 +776,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Widget _buildCategories(BuildContext context) {
     final cats = [
-      {
-        'icon': Icons.account_balance_outlined,
-        'label': 'Temples',
-        'query': 'temple',
-      },
+      {'icon': Icons.account_balance_outlined, 'label': 'Temples', 'query': 'temple'},
       {'icon': Icons.landscape_outlined, 'label': 'Deserts', 'query': 'desert'},
       {'icon': Icons.sailing_outlined, 'label': 'Nile', 'query': 'nile'},
-      {
-        'icon': Icons.beach_access_outlined,
-        'label': 'Beaches',
-        'query': 'beach',
-      },
+      {'icon': Icons.beach_access_outlined, 'label': 'Beaches', 'query': 'beach'},
       {'icon': Icons.museum_outlined, 'label': 'Museums', 'query': 'museum'},
     ];
 
@@ -860,49 +793,46 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ),
         const SizedBox(height: 14),
         Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: List.generate(cats.length, (i) {
-            final colors = [
-              const Color(0xffc5a358), // Temples - أخضر
-              const Color(0xffc5a358), // Deserts - برتقالي
-              const Color(0xffc5a358), // Nile - أزرق
-              const Color(0xffc5a358), // Beaches - سماوي
-              const Color(0xffc5a358), // Museums - بنفسجي
-            ];
-            return GestureDetector(
-              onTap: () {
-                _searchController.text = cats[i]['query'] as String;
-                _doSearch(cats[i]['query'] as String);
-              },
-              child: Column(
-                children: [
-                  Container(
-                    width: 54,
-                    height: 54,
-                    decoration: BoxDecoration(
-                      color: colors[i].withOpacity(0.15),
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: colors[i].withOpacity(0.5),
-                        width: 1.5,
-                      ),
-                    ),
-                    child: Icon(
-                      cats[i]['icon'] as IconData,
-                      color: colors[i],
-                      size: 24,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    cats[i]['label'] as String,
-                    style: const TextStyle(color: Colors.white70, fontSize: 11),
-                  ),
-                ],
-              ),
-            );
-          }),
-        ),
+  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  children: List.generate(cats.length, (i) {
+    final colors = [
+      const Color(0xffc5a358), // Temples - أخضر
+      const Color(0xffc5a358), // Temples - أخضر
+      const Color(0xffc5a358), // Temples - أخضر
+      const Color(0xffc5a358), // Temples - أخضر
+      const Color(0xffc5a358), // Temples - أخضر
+    ];
+    return GestureDetector(
+      onTap: () {
+        _searchController.text = cats[i]['query'] as String;
+        _doSearch(cats[i]['query'] as String);
+      },
+      child: Column(
+        children: [
+          Container(
+            width: 54,
+            height: 54,
+            decoration: BoxDecoration(
+              color: colors[i].withOpacity(0.15),
+              shape: BoxShape.circle,
+              border: Border.all(color: colors[i].withOpacity(0.5), width: 1.5),
+            ),
+            child: Icon(
+              cats[i]['icon'] as IconData,
+              color: colors[i],
+              size: 24,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            cats[i]['label'] as String,
+            style: const TextStyle(color: Colors.white70, fontSize: 11),
+          ),
+        ],
+      ),
+    );
+  }),
+),
       ],
     );
   }
@@ -915,7 +845,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     if (_isLoadingTours) {
       return const SizedBox(
         height: 210,
-        child: Center(child: CircularProgressIndicator(color: AppColors.gold)),
+        child: Center(child: CircularProgressIndicator(color: Color(0xFFC5A358))),
       );
     }
 

@@ -22,16 +22,16 @@ class _MainNavigationState extends State<MainNavigation> {
   @override
   void initState() {
     super.initState();
-    _screens = [
-      DashboardScreen(onExplore: () => setState(() => _currentIndex = 1),
-        onTours: () => setState(() => _currentIndex = 2),
-
-      ),
-      const ExploreScreen(),
-      const ToursScreen(),
-      const AboutUsScreen(),
-      const ProfileScreen(),
-    ];
+   _screens = [
+  DashboardScreen(
+    onExplore: () => setState(() => _currentIndex = 1),
+    onTours: () => setState(() => _currentIndex = 2),
+  ),
+  const ExploreScreen(),
+  const ToursScreen(),
+  const AboutUsScreen(),
+  const ProfileScreen(),
+];
   }
 
   Widget _navItem(int index, IconData icon, IconData activeIcon, String label) {
