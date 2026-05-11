@@ -62,7 +62,7 @@ class _SavedPlacesScreenState extends State<SavedPlacesScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.bgDark,
-      appBar: const AmunAppBar(title: 'Saved Places', showBack: false),
+      appBar: const AmunAppBar(title: 'Saved Places', showBack: true),
       body: _isLoading
           ? const Center(
               child: CircularProgressIndicator(color: AppColors.gold),
@@ -154,7 +154,9 @@ class _SavedPlacesScreenState extends State<SavedPlacesScreen> {
             ),
             itemCount: _saved.length,
             itemBuilder: (_, i) => PlaceCard(
-              id: _saved[i]['id'] is int ? _saved[i]['id'] : int.tryParse(_saved[i]['id']?.toString() ?? ''),
+              id: _saved[i]['id'] is int
+                  ? _saved[i]['id']
+                  : int.tryParse(_saved[i]['id']?.toString() ?? ''),
               image: _saved[i]['img'],
               name: _saved[i]['name'],
               location: _saved[i]['loc'],

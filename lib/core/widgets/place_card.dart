@@ -72,7 +72,7 @@ class _PlaceCardState extends State<PlaceCard> {
     try {
       final likesService = LikesService();
       await likesService.toggleLike(
-        likeableType: 'Place',
+        likeableType: 'places',
         likeableId: widget.id!,
       );
     } catch (e) {
@@ -274,7 +274,10 @@ class _PlaceCardState extends State<PlaceCard> {
                     ? Image.network(
                         widget.image,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Image.asset('assets/images/pyramids.jpg', fit: BoxFit.cover)
+                        errorBuilder: (_, __, ___) => Image.asset(
+                          'assets/images/pyramids.jpg',
+                          fit: BoxFit.cover,
+                        ),
                       )
                     : Image.asset(
                         widget.image,
