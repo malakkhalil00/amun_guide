@@ -1,6 +1,4 @@
 // 📁 lib/main.dart
-
-import 'package:amin_gide/screens/general/about_us_screen.dart';
 import 'package:flutter/material.dart';
 
 // Core
