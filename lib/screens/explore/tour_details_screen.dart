@@ -5,6 +5,7 @@ import '../../core/constants/app_colors.dart';
 import '../../core/services/tours_service.dart';
 import '../../core/services/tour_booking_service.dart';
 import '../../core/constants/app_assets.dart';
+import '../explore/map_screen.dart';
 
 class TourDetailsScreen extends StatefulWidget {
   const TourDetailsScreen({super.key});
@@ -113,6 +114,8 @@ class _TourDetailsScreenState extends State<TourDetailsScreen> {
                   'rating': (p['rating'] ?? 0).toString(),
                   'price': '\$${p['ticket_price'] ?? 0}',
                   'cat': p['category'] ?? 'Temples',
+                  'latitude': p['latitude'],
+                  'longitude': p['longitude'],
                 };
               }).toList();
             }
@@ -502,7 +505,17 @@ class _TourDetailsScreenState extends State<TourDetailsScreen> {
                             ),
                           ),
                           GestureDetector(
-                            onTap: () {},
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => MapScreen(
+                                    tourTitle: _title,
+                                    places: _places,
+                                  ),
+                                ),
+                              );
+                            },
                             child: const Text(
                               'View Map',
                               style: TextStyle(

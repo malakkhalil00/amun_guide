@@ -25,6 +25,7 @@ import 'screens/tourist/saved_places_screen.dart';
 import 'screens/explore/explore_screen.dart';
 import 'screens/explore/place_details_screen.dart';
 import 'screens/explore/tour_details_screen.dart';
+import 'screens/explore/map_screen.dart';
 
 // AI
 import 'screens/ai/ai_chat_screen.dart';
@@ -71,7 +72,6 @@ class AmunGuideApp extends StatelessWidget {
       ),
       home: const SplashScreen(),
       routes: {
-
         // ══════════════════════════════════════
         // AUTH
         // splash → onboarding → welcome → user_selection
@@ -79,63 +79,64 @@ class AmunGuideApp extends StatelessWidget {
         //       → register → home
         //       → forgot_password → reset_password → login
         // ══════════════════════════════════════
-        '/splash':          (ctx) => const SplashScreen(),
-        '/onboarding':      (ctx) => const OnboardingScreen(),
-        '/welcome':         (ctx) => const WelcomeScreen(),
-        '/user-selection':  (ctx) => const UserSelectionScreen(),
-        '/login':           (ctx) => const LoginScreen(),
-        '/register':        (ctx) => const RegisterScreen(),
+        '/splash': (ctx) => const SplashScreen(),
+        '/onboarding': (ctx) => const OnboardingScreen(),
+        '/welcome': (ctx) => const WelcomeScreen(),
+        '/user-selection': (ctx) => const UserSelectionScreen(),
+        '/login': (ctx) => const LoginScreen(),
+        '/register': (ctx) => const RegisterScreen(),
         '/forgot-password': (ctx) => ForgotPasswordScreen(),
-        '/reset-password':  (ctx) => const ResetPasswordScreen(),
+        '/reset-password': (ctx) => const ResetPasswordScreen(),
 
         // ══════════════════════════════════════
         // MAIN APP
         // ══════════════════════════════════════
-        '/home':            (ctx) => const MainNavigation(),
+        '/home': (ctx) => const MainNavigation(),
 
         // ══════════════════════════════════════
         // TOURIST
         // ══════════════════════════════════════
-        '/notifications':   (ctx) => const NotificationsScreen(),
-        '/profile':          (ctx) => const ProfileScreen(),
-        '/edit-profile':    (ctx) => const EditProfileScreen(),
-        '/saved-places':    (ctx) => const SavedPlacesScreen(),
+        '/notifications': (ctx) => const NotificationsScreen(),
+        '/profile': (ctx) => const ProfileScreen(),
+        '/edit-profile': (ctx) => const EditProfileScreen(),
+        '/saved-places': (ctx) => const SavedPlacesScreen(),
 
         // ══════════════════════════════════════
         // EXPLORE
         // ══════════════════════════════════════
-        '/explore':         (ctx) => const ExploreScreen(),
-        '/place-details':   (ctx) => const PlaceDetailsScreen(),
-        '/tour-details':    (ctx) => const TourDetailsScreen(),
+        '/explore': (ctx) => const ExploreScreen(),
+        '/place-details': (ctx) => const PlaceDetailsScreen(),
+        '/tour-details': (ctx) => const TourDetailsScreen(),
+        '/map': (ctx) => const MapScreen(tourTitle: '', places: []),
 
         // ══════════════════════════════════════
         // AI — يتضاف في Section 4
         // ══════════════════════════════════════
-        '/ai-chat':         (ctx) => const AiChatScreen(),
+        '/ai-chat': (ctx) => const AiChatScreen(),
         '/ai-plan-details': (ctx) => const AiPlanDetailsScreen(),
 
         // ══════════════════════════════════════
         // PAYMENT — يتضاف في Section 5
         // ══════════════════════════════════════
         '/payment-receipts': (ctx) => const PaymentReceiptsScreen(),
-        '/payment-success':  (ctx) => const PaymentSuccessScreen(),
-        '/payment-failed':   (ctx) => const PaymentFailedScreen(),
+        '/payment-success': (ctx) => const PaymentSuccessScreen(),
+        '/payment-failed': (ctx) => const PaymentFailedScreen(),
 
         // ══════════════════════════════════════
         // ADMIN — يتضاف في Section 6
         // ══════════════════════════════════════
-        '/admin':            (ctx) => const AdminDashboardScreen(),
+        '/admin': (ctx) => const AdminDashboardScreen(),
         '/approve-payments': (ctx) => const ApprovePaymentsScreen(),
-        '/create-tour':      (ctx) => const CreateNewTourScreen(),
-        '/manage-tours':     (ctx) => const ManageToursScreen(),
-        '/manage-users':     (ctx) => const ManageUsersScreen(),
+        '/create-tour': (ctx) => const CreateNewTourScreen(),
+        '/manage-tours': (ctx) => const ManageToursScreen(),
+        '/manage-users': (ctx) => const ManageUsersScreen(),
 
         // ══════════════════════════════════════
         // GENERAL — يتضاف في Section 7
         // ══════════════════════════════════════
-        '/community':     (ctx) => const CommunityScreen(),
-        '/post-details':  (ctx) => const PostDetailsScreen(),
-        '/about-us':      (ctx) => const AboutUsScreen(),
+        '/community': (ctx) => const CommunityScreen(),
+        '/post-details': (ctx) => const PostDetailsScreen(),
+        '/about-us': (ctx) => const AboutUsScreen(),
       },
     );
   }
