@@ -12,7 +12,9 @@ class AuthService {
     required String password,
     required String phone,
     required String address,
+    required String role, 
     String? profileImagePath,
+    String? nationalId, 
   }) async {
     final formData = FormData.fromMap({
       'name': name,
@@ -20,9 +22,12 @@ class AuthService {
       'password': password,
       'phone': phone,
       'address': address,
+      'role': role,
       if (profileImagePath != null)
         'profile_image':
             await MultipartFile.fromFile(profileImagePath, filename: 'profile.jpg'),
+      if (nationalId != null)
+        'national_id': nationalId,
     });
 
     return await _dio.post(Api.register, data: formData);

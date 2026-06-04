@@ -5,7 +5,7 @@ import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_assets.dart';
 import '../../core/services/likes_service.dart';
 import '../../core/widgets/amun_app_bar.dart';
-import '../../core/widgets/amun_button.dart';
+import '../../core/widgets/amun_button.dart' as btn;
 import '../../core/widgets/amun_filter_chip.dart';
 import '../../core/widgets/place_card.dart';
 
@@ -109,7 +109,7 @@ class _SavedPlacesScreenState extends State<SavedPlacesScreen> {
               ),
             ),
             const SizedBox(height: 32),
-            AmunButton(
+            btn.AmunButton(
               label: 'Explore Places',
               onTap: () => Navigator.pushNamed(context, '/explore'),
               icon: Icons.explore_outlined,

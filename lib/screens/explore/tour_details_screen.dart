@@ -3,7 +3,6 @@
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/services/tours_service.dart';
-import '../../core/services/tour_booking_service.dart';
 import '../../core/constants/app_assets.dart';
 import '../explore/map_screen.dart';
 
@@ -14,14 +13,12 @@ class TourDetailsScreen extends StatefulWidget {
   State<TourDetailsScreen> createState() => _TourDetailsScreenState();
 }
 
-class _TourDetailsScreenState extends State<TourDetailsScreen> {
+class _TourDetailsScreenState extends State<TourDetailsScreen>
+    with TickerProviderStateMixin {
   bool _isSaved = false;
   bool _isLoading = true;
-  bool _isBooking = false;
   final _toursService = ToursService();
-  final _bookingService = TourBookingService();
 
-  // ── Tour data ──────────────────────────────────
   String _title = '';
   String _price = '';
   String _location = '';
@@ -34,19 +31,44 @@ class _TourDetailsScreenState extends State<TourDetailsScreen> {
   Map<String, dynamic> _guide = {};
   List<Map<String, dynamic>> _places = [];
 
+  late AnimationController _contentController;
+  late Animation<double> _contentFade;
+  late Animation<double> _contentSlide;
+
+  late AnimationController _saveController;
+  late Animation<double> _saveScale;
+
   @override
   void initState() {
     super.initState();
+
+    _contentController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 500),
+    );
+    _contentFade = CurvedAnimation(
+      parent: _contentController,
+      curve: Curves.easeOut,
+    );
+    _contentSlide = Tween<double>(begin: 30, end: 0).animate(
+      CurvedAnimation(parent: _contentController, curve: Curves.easeOutCubic),
+    );
+
+    _saveController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 200),
+    );
+    _saveScale = Tween<double>(begin: 1.0, end: 1.3).animate(
+      CurvedAnimation(parent: _saveController, curve: Curves.easeOutBack),
+    );
+
     WidgetsBinding.instance.addPostFrameCallback((_) => _loadData());
   }
 
   Future<void> _loadData() async {
-    // Get route arguments (could be a tour id or a map with basic info)
     final args = ModalRoute.of(context)?.settings.arguments;
-
     int? tourId;
     if (args is Map<String, dynamic>) {
-      // Pre-fill from arguments while fetching
       setState(() {
         _tourId = args['id'] ?? 0;
         _title = args['name']?.toString() ?? args['title']?.toString() ?? '';
@@ -61,13 +83,11 @@ class _TourDetailsScreenState extends State<TourDetailsScreen> {
       tourId = args;
     }
 
-    // Fetch full details from API
     if (tourId != null && tourId > 0) {
       try {
         final response = await _toursService.getTour(tourId);
         final data = response.data;
         final tour = data['data'] ?? data;
-
         if (mounted) {
           setState(() {
             _tourId = tour['id'] ?? tourId;
@@ -79,13 +99,9 @@ class _TourDetailsScreenState extends State<TourDetailsScreen> {
             _reviewsCount =
                 tour['reviews_count'] ?? tour['bookings_count'] ?? 0;
             _durationDays = tour['duration_days'] ?? tour['days'] ?? 1;
-
-            // Guide info
             if (tour['guide'] != null) {
               _guide = Map<String, dynamic>.from(tour['guide']);
             }
-
-            // Places included
             if (tour['places'] != null && tour['places'] is List) {
               final placeImages = [
                 AppAssets.pyramids,
@@ -126,49 +142,40 @@ class _TourDetailsScreenState extends State<TourDetailsScreen> {
       }
     }
 
-    if (mounted) setState(() => _isLoading = false);
-  }
-
-  Future<void> _joinTour() async {
-    if (_tourId <= 0) {
-      Navigator.pushNamed(context, '/payment-success');
-      return;
-    }
-
-    setState(() => _isBooking = true);
-    try {
-      await _bookingService.createBooking(
-        tourId: _tourId,
-        participantsCount: 1,
-      );
-      if (mounted) {
-        Navigator.pushNamed(context, '/payment-success');
-      }
-    } catch (e) {
-      if (mounted) {
-        final msg = e.toString();
-        final alreadyBooked = msg.contains('already') || msg.contains('422');
-
-        if (alreadyBooked) {
-          // لو محجوز بالفعل، روح للـ success screen على طول
-          Navigator.pushNamed(context, '/payment-success');
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                'Booking failed: ${msg.contains('passed') ? 'Tour date has passed' : 'Please try again'}',
-              ),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-      }
-    } finally {
-      if (mounted) setState(() => _isBooking = false);
+    if (mounted) {
+      setState(() => _isLoading = false);
+      _contentController.forward();
     }
   }
 
-  // ── Helper: network or asset image ─────────────
+  // ── الجديد: بدل _joinTour القديم ──────────────
+  void _openBookingSummary() {
+    Navigator.pushNamed(
+      context,
+      '/booking-summary',
+      arguments: {
+        'id': _tourId,
+        'name': _title,
+        'guideName': _guide['name'] ?? '',
+        'price':
+            double.tryParse(
+              _price.replaceAll('\$', '').replaceAll(',', '').trim(),
+            ) ??
+            0.0,
+        'duration_days': _durationDays,
+        'location': _location,
+        'image': _image,
+      },
+    );
+  }
+
+  @override
+  void dispose() {
+    _contentController.dispose();
+    _saveController.dispose();
+    super.dispose();
+  }
+
   Widget _buildImage(
     String src, {
     double? width,
@@ -180,7 +187,6 @@ class _TourDetailsScreenState extends State<TourDetailsScreen> {
       color: const Color(0xFF2A1F0E),
       child: const Icon(Icons.image, color: Colors.white24, size: 40),
     );
-
     return isNetwork
         ? Image.network(
             src,
@@ -200,60 +206,75 @@ class _TourDetailsScreenState extends State<TourDetailsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
-      return Scaffold(
-        backgroundColor: const Color(0xFF1A1208),
-        body: const Center(
-          child: CircularProgressIndicator(color: AppColors.gold),
-        ),
-      );
-    }
+    if (_isLoading) return _buildSkeleton();
 
     final ratingNum = double.tryParse(_rating) ?? 0;
     final fullStars = ratingNum.floor();
     final hasHalf = (ratingNum - fullStars) >= 0.3;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF1A1208),
+      backgroundColor: const Color(0xFF151411),
       body: Stack(
         children: [
           CustomScrollView(
             slivers: [
-              // ── Hero Image ──────────────────────────────────
+              // ── Hero ─────────────────────────────
               SliverAppBar(
-                expandedHeight: 260,
+                expandedHeight: 300,
                 pinned: true,
-                backgroundColor: const Color(0xFF1A1208),
+                backgroundColor: const Color(0xFF151411),
                 elevation: 0,
                 leading: GestureDetector(
                   onTap: () => Navigator.pop(context),
                   child: Container(
                     margin: const EdgeInsets.all(8),
-                    decoration: const BoxDecoration(
-                      color: Colors.black54,
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.5),
                       shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white.withOpacity(0.1)),
                     ),
-                    child: const Icon(Icons.arrow_back, color: Colors.white),
+                    child: const Icon(
+                      Icons.arrow_back_ios_new,
+                      color: Colors.white,
+                      size: 18,
+                    ),
                   ),
                 ),
                 actions: [
                   GestureDetector(
-                    onTap: () => setState(() => _isSaved = !_isSaved),
-                    child: Container(
-                      margin: const EdgeInsets.only(
-                        right: 12,
-                        top: 8,
-                        bottom: 8,
+                    onTap: () {
+                      _saveController.forward().then(
+                        (_) => _saveController.reverse(),
+                      );
+                      setState(() => _isSaved = !_isSaved);
+                    },
+                    child: AnimatedBuilder(
+                      animation: _saveScale,
+                      builder: (_, child) => Transform.scale(
+                        scale: _saveScale.value,
+                        child: child,
                       ),
-                      padding: const EdgeInsets.all(8),
-                      decoration: const BoxDecoration(
-                        color: Colors.black54,
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        _isSaved ? Icons.favorite : Icons.favorite_border,
-                        color: _isSaved ? Colors.red : Colors.white,
-                        size: 20,
+                      child: Container(
+                        margin: const EdgeInsets.only(
+                          right: 12,
+                          top: 8,
+                          bottom: 8,
+                        ),
+                        padding: const EdgeInsets.all(9),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.5),
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: Colors.white.withOpacity(0.1),
+                          ),
+                        ),
+                        child: Icon(
+                          _isSaved
+                              ? Icons.favorite_rounded
+                              : Icons.favorite_border_rounded,
+                          color: _isSaved ? Colors.red : Colors.white,
+                          size: 20,
+                        ),
                       ),
                     ),
                   ),
@@ -268,34 +289,32 @@ class _TourDetailsScreenState extends State<TourDetailsScreen> {
                           : Image.asset(
                               'assets/images/pyramids.jpg',
                               fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => Container(
-                                color: const Color(0xFF2A1F0E),
-                                child: const Icon(
-                                  Icons.image,
-                                  color: Colors.white24,
-                                  size: 80,
-                                ),
-                              ),
+                              errorBuilder: (_, __, ___) =>
+                                  Container(color: const Color(0xFF2A1F0E)),
                             ),
-                      // Gradient
-                      const DecoratedBox(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [Colors.transparent, Color(0xFF1A1208)],
-                            stops: [0.4, 1.0],
+                      Positioned.fill(
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [
+                                Colors.black.withOpacity(0.25),
+                                Colors.transparent,
+                                const Color(0xFF151411),
+                              ],
+                              stops: const [0.0, 0.5, 1.0],
+                            ),
                           ),
                         ),
                       ),
-                      // Premium Badge
                       Positioned(
                         bottom: 16,
                         left: 16,
                         child: Container(
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 6,
+                            horizontal: 14,
+                            vertical: 7,
                           ),
                           decoration: BoxDecoration(
                             color: AppColors.gold,
@@ -304,42 +323,21 @@ class _TourDetailsScreenState extends State<TourDetailsScreen> {
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
+                              const Icon(
+                                Icons.verified_rounded,
+                                color: Colors.black,
+                                size: 14,
+                              ),
+                              const SizedBox(width: 5),
                               Text(
-                                '${_durationDays}D Tour',
+                                '$_durationDays Day Tour',
                                 style: const TextStyle(
                                   color: Colors.black,
                                   fontSize: 12,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
-                              const SizedBox(width: 4),
-                              const Icon(
-                                Icons.verified,
-                                color: Colors.black,
-                                size: 14,
-                              ),
                             ],
-                          ),
-                        ),
-                      ),
-                      // Title in AppBar
-                      const Positioned(
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        child: SafeArea(
-                          child: Center(
-                            child: Padding(
-                              padding: EdgeInsets.symmetric(vertical: 14),
-                              child: Text(
-                                'Tour Details',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
                           ),
                         ),
                       ),
@@ -348,195 +346,206 @@ class _TourDetailsScreenState extends State<TourDetailsScreen> {
                 ),
               ),
 
-              // ── Content ─────────────────────────────────────
+              // ── Content ──────────────────────────
               SliverPadding(
-                padding: const EdgeInsets.fromLTRB(20, 4, 20, 120),
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 130),
                 sliver: SliverList(
                   delegate: SliverChildListDelegate([
-                    // ── Title & Price ──────────────────────
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: Text(
-                            _title,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 28,
-                              fontWeight: FontWeight.bold,
-                              height: 1.2,
-                            ),
-                          ),
-                        ),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Text(
-                              _price,
-                              style: const TextStyle(
-                                color: AppColors.gold,
-                                fontSize: 26,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const Text(
-                              'per person',
-                              style: TextStyle(
-                                color: Colors.white38,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-
-                    // Location
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.location_on,
-                          color: AppColors.gold,
-                          size: 15,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          _location,
-                          style: const TextStyle(
-                            color: Colors.white54,
-                            fontSize: 13,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 14),
-
-                    // Rating
-                    Row(
-                      children: [
-                        Row(
-                          children: List.generate(
-                            5,
-                            (i) => Icon(
-                              i < fullStars
-                                  ? Icons.star
-                                  : (i == fullStars && hasHalf
-                                        ? Icons.star_half
-                                        : Icons.star_border),
-                              color: AppColors.gold,
-                              size: 18,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          _rating,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      _reviewsCount > 0
-                          ? 'Based on $_reviewsCount reviews'
-                          : 'No reviews yet',
-                      style: const TextStyle(
-                        color: Colors.white38,
-                        fontSize: 12,
-                      ),
-                    ),
-
-                    const SizedBox(height: 6),
-                    const Divider(color: Colors.white10, height: 30),
-
-                    // ── Your Guide ──────────────────────────
-                    if (_guide.isNotEmpty) ...[
-                      const Text(
-                        'Your Guide',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
+                    AnimatedBuilder(
+                      animation: _contentFade,
+                      builder: (_, child) => Opacity(
+                        opacity: _contentFade.value,
+                        child: Transform.translate(
+                          offset: Offset(0, _contentSlide.value),
+                          child: child,
                         ),
                       ),
-                      const SizedBox(height: 14),
-                      _buildGuideCard(),
-                      const SizedBox(height: 24),
-                    ],
-
-                    // ── About the Tour ──────────────────────
-                    if (_description.isNotEmpty) ...[
-                      const Text(
-                        'About the Tour',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        _description,
-                        style: const TextStyle(
-                          color: Colors.white54,
-                          fontSize: 14,
-                          height: 1.7,
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                    ],
-
-                    // ── Places Included ─────────────────────
-                    if (_places.isNotEmpty) ...[
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
-                            'Places Included',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          GestureDetector(
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => MapScreen(
-                                    tourTitle: _title,
-                                    places: _places,
+                          const SizedBox(height: 4),
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  _title,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 26,
+                                    fontWeight: FontWeight.w700,
+                                    fontFamily: 'Playfair Display',
+                                    height: 1.2,
                                   ),
                                 ),
-                              );
-                            },
-                            child: const Text(
-                              'View Map',
+                              ),
+                              const SizedBox(width: 12),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Text(
+                                    _price,
+                                    style: const TextStyle(
+                                      color: AppColors.gold,
+                                      fontSize: 26,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  Text(
+                                    'per person',
+                                    style: TextStyle(
+                                      color: Colors.white.withOpacity(0.35),
+                                      fontSize: 11,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.location_on_rounded,
+                                color: AppColors.gold.withOpacity(0.8),
+                                size: 14,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                _location,
+                                style: TextStyle(
+                                  color: Colors.white.withOpacity(0.5),
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          Row(
+                            children: [
+                              Row(
+                                children: List.generate(
+                                  5,
+                                  (i) => Icon(
+                                    i < fullStars
+                                        ? Icons.star_rounded
+                                        : (i == fullStars && hasHalf
+                                              ? Icons.star_half_rounded
+                                              : Icons.star_border_rounded),
+                                    color: AppColors.gold,
+                                    size: 18,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                _rating,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                _reviewsCount > 0
+                                    ? '($_reviewsCount reviews)'
+                                    : '(No reviews yet)',
+                                style: TextStyle(
+                                  color: Colors.white.withOpacity(0.35),
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 24),
+                          _buildDivider(),
+                          if (_guide.isNotEmpty) ...[
+                            const SizedBox(height: 24),
+                            _buildSectionTitle('Your Guide'),
+                            const SizedBox(height: 14),
+                            _buildGuideCard(),
+                            const SizedBox(height: 24),
+                            _buildDivider(),
+                          ],
+                          if (_description.isNotEmpty) ...[
+                            const SizedBox(height: 24),
+                            _buildSectionTitle('About the Tour'),
+                            const SizedBox(height: 12),
+                            Text(
+                              _description,
                               style: TextStyle(
-                                color: AppColors.gold,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
+                                color: Colors.white.withOpacity(0.55),
+                                fontSize: 14,
+                                height: 1.75,
                               ),
                             ),
-                          ),
+                            const SizedBox(height: 24),
+                            _buildDivider(),
+                          ],
+                          if (_places.isNotEmpty) ...[
+                            const SizedBox(height: 24),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                _buildSectionTitle('Places Included'),
+                                GestureDetector(
+                                  onTap: () => Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => MapScreen(
+                                        tourTitle: _title,
+                                        places: _places,
+                                      ),
+                                    ),
+                                  ),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 6,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.gold.withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(20),
+                                      border: Border.all(
+                                        color: AppColors.gold.withOpacity(0.3),
+                                      ),
+                                    ),
+                                    child: const Row(
+                                      children: [
+                                        Icon(
+                                          Icons.map_rounded,
+                                          color: AppColors.gold,
+                                          size: 13,
+                                        ),
+                                        SizedBox(width: 4),
+                                        Text(
+                                          'View Map',
+                                          style: TextStyle(
+                                            color: AppColors.gold,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                            ..._places.map((p) => _buildPlaceItem(p)),
+                          ],
                         ],
                       ),
-                      const SizedBox(height: 14),
-                      ..._places.map((place) => _buildPlaceItem(place)),
-                    ],
+                    ),
                   ]),
                 ),
               ),
             ],
           ),
 
-          // ── Bottom Bar ─────────────────────────────────────
+          // ── Bottom Bar ──────────────────────────
           Positioned(
             bottom: 0,
             left: 0,
@@ -544,13 +553,15 @@ class _TourDetailsScreenState extends State<TourDetailsScreen> {
             child: Container(
               padding: EdgeInsets.fromLTRB(
                 20,
-                14,
+                16,
                 20,
-                MediaQuery.of(context).padding.bottom + 14,
+                MediaQuery.of(context).padding.bottom + 16,
               ),
-              decoration: const BoxDecoration(
-                color: Color(0xFF1A1208),
-                border: Border(top: BorderSide(color: Colors.white10)),
+              decoration: BoxDecoration(
+                color: const Color(0xFF151411).withOpacity(0.97),
+                border: Border(
+                  top: BorderSide(color: Colors.white.withOpacity(0.07)),
+                ),
               ),
               child: Row(
                 children: [
@@ -558,18 +569,18 @@ class _TourDetailsScreenState extends State<TourDetailsScreen> {
                   Expanded(
                     child: OutlinedButton.icon(
                       onPressed: () =>
-                          Navigator.pushNamed(context, '/payment-receipts'),
+                          Navigator.pushNamed(context, '/my-bookings'),
                       style: OutlinedButton.styleFrom(
                         side: BorderSide(
-                          color: AppColors.gold.withOpacity(0.5),
+                          color: AppColors.gold.withOpacity(0.45),
                         ),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        padding: const EdgeInsets.symmetric(vertical: 15),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(30),
+                          borderRadius: BorderRadius.circular(16),
                         ),
                       ),
                       icon: const Icon(
-                        Icons.upload_file,
+                        Icons.upload_file_rounded,
                         color: AppColors.gold,
                         size: 18,
                       ),
@@ -584,35 +595,27 @@ class _TourDetailsScreenState extends State<TourDetailsScreen> {
                     ),
                   ),
                   const SizedBox(width: 12),
-                  // Join Tour
+                  // Join Tour — بيفتح Booking Summary
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: _isBooking ? null : _joinTour,
+                      onPressed: _openBookingSummary,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.gold,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        padding: const EdgeInsets.symmetric(vertical: 15),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(30),
+                          borderRadius: BorderRadius.circular(16),
                         ),
                         elevation: 0,
                       ),
-                      child: _isBooking
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.black,
-                              ),
-                            )
-                          : const Text(
-                              'Join Tour',
-                              style: TextStyle(
-                                color: Colors.black,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 15,
-                              ),
-                            ),
+                      child: const Text(
+                        'Join Tour',
+                        style: TextStyle(
+                          color: Colors.black,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                          letterSpacing: 0.3,
+                        ),
+                      ),
                     ),
                   ),
                 ],
@@ -624,7 +627,29 @@ class _TourDetailsScreenState extends State<TourDetailsScreen> {
     );
   }
 
-  // ── Guide Card ─────────────────────────────────────────
+  Widget _buildSectionTitle(String title) => Text(
+    title,
+    style: const TextStyle(
+      color: Colors.white,
+      fontSize: 18,
+      fontWeight: FontWeight.w700,
+      fontFamily: 'Playfair Display',
+    ),
+  );
+
+  Widget _buildDivider() => Container(
+    height: 1,
+    decoration: BoxDecoration(
+      gradient: LinearGradient(
+        colors: [
+          Colors.transparent,
+          Colors.white.withOpacity(0.08),
+          Colors.transparent,
+        ],
+      ),
+    ),
+  );
+
   Widget _buildGuideCard() {
     final guideName = _guide['name'] ?? 'Certified Egyptologist';
     final guideImage = _guide['profile_image'] ?? _guide['image'] ?? '';
@@ -635,20 +660,20 @@ class _TourDetailsScreenState extends State<TourDetailsScreen> {
         'Expert in New Kingdom history...';
 
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: const Color(0xFF1E1A16),
         borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.gold.withOpacity(0.2)),
       ),
       child: Row(
         children: [
-          // Guide avatar
           Container(
-            width: 56,
-            height: 56,
+            width: 58,
+            height: 58,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              border: Border.all(color: AppColors.gold, width: 2),
+              border: Border.all(color: AppColors.gold, width: 1.5),
             ),
             child: ClipOval(
               child: guideImage.isNotEmpty && guideImage.startsWith('http')
@@ -656,11 +681,11 @@ class _TourDetailsScreenState extends State<TourDetailsScreen> {
                       guideImage,
                       fit: BoxFit.cover,
                       errorBuilder: (_, __, ___) => Container(
-                        color: const Color(0xFFE8D5A3),
+                        color: const Color(0xFF2A1F0E),
                         child: const Icon(
                           Icons.person,
-                          color: Colors.brown,
-                          size: 30,
+                          color: AppColors.gold,
+                          size: 28,
                         ),
                       ),
                     )
@@ -668,74 +693,74 @@ class _TourDetailsScreenState extends State<TourDetailsScreen> {
                       'assets/images/guide_ahmed.jpg',
                       fit: BoxFit.cover,
                       errorBuilder: (_, __, ___) => Container(
-                        color: const Color(0xFFE8D5A3),
+                        color: const Color(0xFF2A1F0E),
                         child: const Icon(
                           Icons.person,
-                          color: Colors.brown,
-                          size: 30,
+                          color: AppColors.gold,
+                          size: 28,
                         ),
                       ),
                     ),
             ),
           ),
           const SizedBox(width: 14),
-          // Guide info
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 3,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.gold.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        guideRating,
-                        style: const TextStyle(
-                          color: AppColors.gold,
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(width: 3),
-                      const Icon(Icons.star, color: AppColors.gold, size: 12),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 4),
                 Text(
                   guideName,
                   style: const TextStyle(
-                    color: AppColors.gold,
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
+                const SizedBox(height: 3),
                 Text(
                   guideBio,
-                  style: const TextStyle(color: Colors.black54, fontSize: 12),
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.45),
+                    fontSize: 12,
+                    height: 1.4,
+                  ),
+                  maxLines: 2,
                   overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.star_rounded,
+                      color: AppColors.gold,
+                      size: 13,
+                    ),
+                    const SizedBox(width: 3),
+                    Text(
+                      guideRating,
+                      style: const TextStyle(
+                        color: AppColors.gold,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
           ),
+          const SizedBox(width: 8),
           Container(
             width: 40,
             height: 40,
-            decoration: const BoxDecoration(
-              color: Colors.black,
+            decoration: BoxDecoration(
+              color: AppColors.gold.withOpacity(0.12),
               shape: BoxShape.circle,
+              border: Border.all(color: AppColors.gold.withOpacity(0.3)),
             ),
             child: const Icon(
-              Icons.chat_bubble_outline,
-              color: Colors.white,
+              Icons.chat_bubble_outline_rounded,
+              color: AppColors.gold,
               size: 18,
             ),
           ),
@@ -744,16 +769,20 @@ class _TourDetailsScreenState extends State<TourDetailsScreen> {
     );
   }
 
-  // ── Place Item ─────────────────────────────────────────
   Widget _buildPlaceItem(Map<String, dynamic> place) {
     final img = place['img']?.toString() ?? '';
     final isNetwork = img.startsWith('http');
-
     return GestureDetector(
       onTap: () =>
           Navigator.pushNamed(context, '/place-details', arguments: place),
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1E1A16),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.white.withOpacity(0.07)),
+        ),
         child: Row(
           children: [
             ClipRRect(
@@ -765,18 +794,12 @@ class _TourDetailsScreenState extends State<TourDetailsScreen> {
                     ? Image.network(
                         img,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Container(
-                          color: const Color(0xFF2A1F0E),
-                          child: const Icon(Icons.image, color: Colors.white24),
-                        ),
+                        errorBuilder: (_, __, ___) => _imgError(),
                       )
                     : Image.asset(
                         img,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Container(
-                          color: const Color(0xFF2A1F0E),
-                          child: const Icon(Icons.image, color: Colors.white24),
-                        ),
+                        errorBuilder: (_, __, ___) => _imgError(),
                       ),
               ),
             ),
@@ -789,15 +812,15 @@ class _TourDetailsScreenState extends State<TourDetailsScreen> {
                     place['name']?.toString() ?? '',
                     style: const TextStyle(
                       color: Colors.white,
-                      fontSize: 15,
-                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     place['desc']?.toString() ?? '',
-                    style: const TextStyle(
-                      color: Colors.white38,
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.4),
                       fontSize: 12,
                       height: 1.4,
                     ),
@@ -807,12 +830,124 @@ class _TourDetailsScreenState extends State<TourDetailsScreen> {
                 ],
               ),
             ),
-            const Icon(
-              Icons.arrow_forward_ios,
-              color: Color(0xffc5a358),
-              size: 16,
+            const SizedBox(width: 8),
+            Container(
+              width: 30,
+              height: 30,
+              decoration: BoxDecoration(
+                color: AppColors.gold.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.arrow_forward_ios_rounded,
+                color: AppColors.gold,
+                size: 13,
+              ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _imgError() => Container(
+    color: const Color(0xFF2A1F0E),
+    child: const Icon(Icons.image, color: Colors.white24, size: 28),
+  );
+
+  Widget _buildSkeleton() {
+    return Scaffold(
+      backgroundColor: const Color(0xFF151411),
+      body: Column(
+        children: [
+          _ShimmerBox(height: 300, borderRadius: 0),
+          const SizedBox(height: 20),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _ShimmerBox(height: 28, width: 240, borderRadius: 8),
+                const SizedBox(height: 12),
+                _ShimmerBox(height: 16, width: 160, borderRadius: 6),
+                const SizedBox(height: 20),
+                _ShimmerBox(
+                  height: 14,
+                  width: double.infinity,
+                  borderRadius: 6,
+                ),
+                const SizedBox(height: 8),
+                _ShimmerBox(height: 14, width: 280, borderRadius: 6),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ShimmerBox extends StatefulWidget {
+  final double height;
+  final double? width;
+  final double borderRadius;
+  const _ShimmerBox({
+    required this.height,
+    this.width,
+    required this.borderRadius,
+  });
+
+  @override
+  State<_ShimmerBox> createState() => _ShimmerBoxState();
+}
+
+class _ShimmerBoxState extends State<_ShimmerBox>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _ctrl;
+  late Animation<double> _anim;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1400),
+    )..repeat();
+    _anim = Tween<double>(
+      begin: -1.5,
+      end: 1.5,
+    ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut));
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _anim,
+      builder: (_, __) => Container(
+        height: widget.height,
+        width: widget.width,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(widget.borderRadius),
+          gradient: LinearGradient(
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
+            colors: const [
+              Color(0xFF1E1A16),
+              Color(0xFF2A2419),
+              Color(0xFF1E1A16),
+            ],
+            stops: [
+              (_anim.value - 0.3).clamp(0.0, 1.0),
+              (_anim.value).clamp(0.0, 1.0),
+              (_anim.value + 0.3).clamp(0.0, 1.0),
+            ],
+          ),
         ),
       ),
     );

@@ -28,91 +28,174 @@ class TourCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 160,
+        width: 175,
+        height: 230,
         decoration: BoxDecoration(
           color: AppColors.bgCard,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.white10),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: AppColors.border),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Image + Tag
-            Stack(children: [
-              ClipRRect(
-                borderRadius:
-                const BorderRadius.vertical(top: Radius.circular(16)),
-                child: SizedBox(
-                  height: 110, width: double.infinity,
-                 child: image.startsWith('http')
-    ? Image.network(image, fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => Image.asset('assets/images/pyramids.jpg', fit: BoxFit.cover))
-    : Image.asset(image.isNotEmpty ? image : 'assets/images/pyramids.jpg', fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => Container(
-                          color: AppColors.bgInput,
-                          child: const Icon(Icons.image,
-                              color: Colors.white24, size: 40))),
-                ),
-              ),
-              Positioned(
-                bottom: 8, right: 8,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                      color: AppColors.gold,
-                      borderRadius: BorderRadius.circular(8)),
-                  child: Text(tag,
-                      style: const TextStyle(
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min, // ✅
+            children: [
+              // الصورة
+              Stack(
+                children: [
+                  ClipRRect(
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(20),
+                    ),
+                    child: SizedBox(
+                      height: 120,
+                      width: double.infinity,
+                      child: image.startsWith('http')
+                          ? Image.network(
+                              image,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => _fallback(),
+                            )
+                          : Image.asset(
+                              image.isNotEmpty
+                                  ? image
+                                  : 'assets/images/pyramids.jpg',
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => _fallback(),
+                            ),
+                    ),
+                  ),
+                  Positioned.fill(
+                    child: ClipRRect(
+                      borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(20),
+                      ),
+                      child: Container(
+                        decoration: const BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [Colors.transparent, Colors.black45],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    bottom: 10,
+                    right: 10,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.gold,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        tag,
+                        style: const TextStyle(
                           color: Colors.black,
                           fontSize: 10,
-                          fontWeight: FontWeight.bold)),
-                ),
-              ),
-            ]),
-
-            // Info
-            Padding(
-              padding: const EdgeInsets.all(10),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(name,
-                      style: const TextStyle(
-                          color: Colors.white,
                           fontWeight: FontWeight.bold,
-                          fontSize: 13),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis),
-                  const SizedBox(height: 2),
-                  Text(location,
-                      style: const TextStyle(
-                          color: Colors.white38, fontSize: 11)),
-                  const SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(children: [
-                        const Icon(Icons.star,
-                            color: AppColors.gold, size: 12),
-                        const SizedBox(width: 3),
-                        Text(rating,
-                            style: const TextStyle(
-                                color: Colors.white54, fontSize: 11)),
-                      ]),
-                      Text(price,
-                          style: const TextStyle(
-                              color: AppColors.gold,
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold)),
-                    ],
+                        ),
+                      ),
+                    ),
                   ),
                 ],
               ),
-            ),
-          ],
+
+              // Info
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  12,
+                  10,
+                  12,
+                  10,
+                ), // ✅ قللي الـ padding
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      name,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                        letterSpacing: 0.2,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.location_on_outlined,
+                          color: AppColors.gold,
+                          size: 11,
+                        ),
+                        const SizedBox(width: 3),
+                        Expanded(
+                          child: Text(
+                            location,
+                            style: const TextStyle(
+                              color: Colors.white38,
+                              fontSize: 11,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8), // ✅ قللي من 10 لـ 8
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(
+                              Icons.star_rounded,
+                              color: AppColors.gold,
+                              size: 13,
+                            ),
+                            const SizedBox(width: 3),
+                            Text(
+                              rating,
+                              style: const TextStyle(
+                                color: Colors.white54,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                        Text(
+                          price,
+                          style: const TextStyle(
+                            color: AppColors.gold,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
+
+  Widget _fallback() => Container(
+    color: AppColors.bgInput,
+    child: const Icon(Icons.image_outlined, color: Colors.white24, size: 40),
+  );
 }

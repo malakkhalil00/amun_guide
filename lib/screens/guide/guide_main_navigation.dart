@@ -1,25 +1,22 @@
-// 📁 lib/screens/tourist/main_navigation.dart
-
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
-import 'dashboard_screen.dart';
-import 'profile_screen.dart';
-import '../explore/explore_screen.dart';
-import '../explore/tours_screen.dart';
-import '../booking/my_bookings_screen.dart';
+import 'guide_placeholder_screen.dart';
+import 'guide_dashboard_screen.dart';
+import '../tourist/profile_screen.dart';
+import 'guide_tours_screen.dart';
 
-class MainNavigation extends StatefulWidget {
-  const MainNavigation({super.key});
+class GuideMainNavigation extends StatefulWidget {
+  const GuideMainNavigation({super.key});
 
   @override
-  State<MainNavigation> createState() => _MainNavigationState();
+  State<GuideMainNavigation> createState() => _GuideMainNavigationState();
 }
 
-class _MainNavigationState extends State<MainNavigation>
+class _GuideMainNavigationState extends State<GuideMainNavigation>
     with TickerProviderStateMixin {
   int _currentIndex = 0;
-  late final List<Widget> _screens;
 
+  late final List<Widget> _screens;
   late final List<AnimationController> _controllers;
   late final List<Animation<double>> _scaleAnims;
 
@@ -28,13 +25,17 @@ class _MainNavigationState extends State<MainNavigation>
     super.initState();
 
     _screens = [
-      DashboardScreen(
-        onExplore: () => setState(() => _currentIndex = 1),
-        onTours: () => setState(() => _currentIndex = 2),
+      const GuideDashboardScreen(),
+      const GuideToursScreen(),
+
+      const GuidePlaceholderScreen(
+        title: 'Booking Requests',
+        icon: Icons.book_online_outlined,
       ),
-      const ExploreScreen(),
-      const ToursScreen(),
-      const MyBookingsScreen(),
+      const GuidePlaceholderScreen(
+        title: 'Messages',
+        icon: Icons.message_outlined,
+      ),
       const ProfileScreen(),
     ];
 
@@ -58,9 +59,7 @@ class _MainNavigationState extends State<MainNavigation>
 
   @override
   void dispose() {
-    for (final c in _controllers) {
-      c.dispose();
-    }
+    for (final c in _controllers) c.dispose();
     super.dispose();
   }
 
@@ -82,10 +81,10 @@ class _MainNavigationState extends State<MainNavigation>
 
   Widget _buildNavBar() {
     final items = [
-      (Icons.home_outlined, Icons.home_rounded, 'Home'),
-      (Icons.explore_outlined, Icons.explore_rounded, 'Explore'),
-      (Icons.map_outlined, Icons.map_rounded, 'Tours'),
-      (Icons.bookmark_border_rounded, Icons.bookmark_rounded, 'My Trips'),
+      (Icons.dashboard_outlined, Icons.dashboard_rounded, 'Dashboard'),
+      (Icons.map_outlined, Icons.map_rounded, 'My Tours'),
+      (Icons.book_online_outlined, Icons.book_online_rounded, 'Bookings'),
+      (Icons.message_outlined, Icons.message_rounded, 'Messages'),
       (Icons.person_outline, Icons.person_rounded, 'Profile'),
     ];
 
@@ -131,7 +130,6 @@ class _MainNavigationState extends State<MainNavigation>
     required String label,
   }) {
     final isActive = _currentIndex == index;
-
     return GestureDetector(
       onTap: () => _onTabTap(index),
       behavior: HitTestBehavior.opaque,

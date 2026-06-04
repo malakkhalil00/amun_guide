@@ -1,6 +1,5 @@
 class Api {
-  static const String baseUrl = "https://amun-guide-3234a.up.railway.app";
-
+  static const String baseUrl = "https://amun-guide.up.railway.app";
   // ══════════════════════════════════════
   // AUTH
   // ══════════════════════════════════════
@@ -38,8 +37,7 @@ class Api {
   static const String myBookings = "/api/v1/tour-bookings/my-bookings";
   static String tourBookingApprove(int id) =>
       "/api/v1/tour-bookings/$id/approve";
-  static String tourBookingReject(int id) =>
-      "/api/v1/tour-bookings/$id/reject";
+  static String tourBookingReject(int id) => "/api/v1/tour-bookings/$id/reject";
   static const String tourBookingStatistics =
       "/api/v1/tour-bookings/statistics";
 
@@ -60,8 +58,7 @@ class Api {
   static const String likes = "/api/v1/likes";
   static const String likesToggle = "/api/v1/likes/toggle";
   static String likeById(int id) => "/api/v1/likes/$id";
-  static String subjectLikes(String type, int id) =>
-      "/api/v1/$type/$id/likes";
+  static String subjectLikes(String type, int id) => "/api/v1/$type/$id/likes";
   static String subjectLikesCount(String type, int id) =>
       "/api/v1/$type/$id/likes/count";
   static const String userLikes = "/api/v1/user/likes";

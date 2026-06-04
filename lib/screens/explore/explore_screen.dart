@@ -7,6 +7,8 @@ import '../../core/services/places_service.dart';
 import '../../core/widgets/amun_filter_chip.dart';
 import '../../core/widgets/place_card.dart';
 import '../../core/widgets/section_header.dart';
+import '../../core/widgets/animated_page_wrapper.dart';
+import '../../core/widgets/app_skeleton.dart';
 
 class ExploreScreen extends StatefulWidget {
   const ExploreScreen({super.key});
@@ -28,10 +30,9 @@ class _ExploreScreenState extends State<ExploreScreen> {
 
   List<Map<String, dynamic>> _places = [];
 
-  // Filter sheet state
   double _minPrice = 0;
   double _maxPrice = 500;
-  String _sortBy = 'rating'; // rating, price_asc, price_desc
+  String _sortBy = 'rating';
 
   @override
   void initState() {
@@ -45,19 +46,14 @@ class _ExploreScreenState extends State<ExploreScreen> {
     super.dispose();
   }
 
-  // ══════════════════════════════════════
-  // LOAD ALL PLACES
-  // ══════════════════════════════════════
-
+  // ✅ كل الـ logic محمي
   Future<void> _loadPlaces() async {
     setState(() => _isLoading = true);
     try {
       final response = await _placesService.getAllPlaces();
       final data = response.data;
       final List items = data['data'] ?? data ?? [];
-      setState(() {
-        _places = _mapItems(items);
-      });
+      setState(() => _places = _mapItems(items));
     } catch (e) {
       debugPrint('Error loading places: $e');
     } finally {
@@ -65,41 +61,32 @@ class _ExploreScreenState extends State<ExploreScreen> {
     }
   }
 
-  // ══════════════════════════════════════
-  // SEARCH — fires on every keystroke
-  // ══════════════════════════════════════
-
   Future<void> _onSearchChanged(String query) async {
     if (query.trim().isEmpty) {
       setState(() => _isSearching = false);
       _loadPlaces();
       return;
     }
-
     setState(() {
       _isSearching = true;
       _isLoading = true;
     });
-
     try {
       final response = await _placesService.searchPlaces(query);
       final data = response.data;
       final List items = data['data'] ?? data ?? [];
-      if (mounted) {
-        setState(() {
-          _places = _mapItems(items);
-        });
-      }
+      if (mounted) setState(() => _places = _mapItems(items));
     } catch (e) {
       debugPrint('Search error: $e');
-      // local fallback
       final q = query.toLowerCase();
       setState(() {
         _places = _places
-            .where((p) =>
-                (p['name'] ?? '').toLowerCase().contains(q) ||
-                (p['loc'] ?? '').toLowerCase().contains(q) ||
-                (p['cat'] ?? '').toLowerCase().contains(q))
+            .where(
+              (p) =>
+                  (p['name'] ?? '').toLowerCase().contains(q) ||
+                  (p['loc'] ?? '').toLowerCase().contains(q) ||
+                  (p['cat'] ?? '').toLowerCase().contains(q),
+            )
             .toList();
       });
     } finally {
@@ -107,18 +94,10 @@ class _ExploreScreenState extends State<ExploreScreen> {
     }
   }
 
-  // ══════════════════════════════════════
-  // FILTER BY CATEGORY — calls API
-  // ══════════════════════════════════════
-
-Future<void> _onFilterChanged(int index) async {
-  setState(() => _activeFilter = index);
-  if (index == 0) await _loadPlaces();
-}
-
-  // ══════════════════════════════════════
-  // TUNE BOTTOM SHEET
-  // ══════════════════════════════════════
+  Future<void> _onFilterChanged(int index) async {
+    setState(() => _activeFilter = index);
+    if (index == 0) await _loadPlaces();
+  }
 
   void _showFilterSheet() {
     double tempMin = _minPrice;
@@ -127,9 +106,9 @@ Future<void> _onFilterChanged(int index) async {
 
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF1E1A16),
+      backgroundColor: AppColors.bgCard,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
       isScrollControlled: true,
       builder: (ctx) => StatefulBuilder(
@@ -139,20 +118,34 @@ Future<void> _onFilterChanged(int index) async {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Handle
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                child: Container(
+                  height: 3,
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        Colors.transparent,
+                        AppColors.gold,
+                        Colors.transparent,
+                      ],
+                    ),
+                  ),
+                ),
+              ),
               Center(
                 child: Container(
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: Colors.white24,
+                    color: AppColors.border,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
               ),
               const SizedBox(height: 20),
-
-              // Title
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -165,23 +158,34 @@ Future<void> _onFilterChanged(int index) async {
                     ),
                   ),
                   GestureDetector(
-                    onTap: () {
-                      setSheet(() {
-                        tempMin = 0;
-                        tempMax = 500;
-                        tempSort = 'rating';
-                      });
-                    },
-                    child: const Text(
-                      'Reset',
-                      style: TextStyle(color: AppColors.gold, fontSize: 13),
+                    onTap: () => setSheet(() {
+                      tempMin = 0;
+                      tempMax = 500;
+                      tempSort = 'rating';
+                    }),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.goldDim,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: AppColors.borderGold),
+                      ),
+                      child: const Text(
+                        'Reset',
+                        style: TextStyle(
+                          color: AppColors.gold,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 24),
-
-              // Price Range
               const Text(
                 'Price Range',
                 style: TextStyle(
@@ -194,13 +198,41 @@ Future<void> _onFilterChanged(int index) async {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    '\$${tempMin.toInt()}',
-                    style: const TextStyle(color: AppColors.gold, fontSize: 13),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 5,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.bgInput,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      '\$${tempMin.toInt()}',
+                      style: const TextStyle(
+                        color: AppColors.gold,
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
-                  Text(
-                    '\$${tempMax.toInt()}',
-                    style: const TextStyle(color: AppColors.gold, fontSize: 13),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 5,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.bgInput,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      '\$${tempMax.toInt()}',
+                      style: const TextStyle(
+                        color: AppColors.gold,
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -210,15 +242,13 @@ Future<void> _onFilterChanged(int index) async {
                 max: 500,
                 divisions: 50,
                 activeColor: AppColors.gold,
-                inactiveColor: Colors.white12,
+                inactiveColor: AppColors.border,
                 onChanged: (v) => setSheet(() {
                   tempMin = v.start;
                   tempMax = v.end;
                 }),
               ),
               const SizedBox(height: 20),
-
-              // Sort By
               const Text(
                 'Sort By',
                 style: TextStyle(
@@ -230,16 +260,29 @@ Future<void> _onFilterChanged(int index) async {
               const SizedBox(height: 12),
               Row(
                 children: [
-                  _sortChip('Top Rated', 'rating', tempSort, (v) => setSheet(() => tempSort = v)),
+                  _sortChip(
+                    'Top Rated',
+                    'rating',
+                    tempSort,
+                    (v) => setSheet(() => tempSort = v),
+                  ),
                   const SizedBox(width: 8),
-                  _sortChip('Price ↑', 'price_asc', tempSort, (v) => setSheet(() => tempSort = v)),
+                  _sortChip(
+                    'Price ↑',
+                    'price_asc',
+                    tempSort,
+                    (v) => setSheet(() => tempSort = v),
+                  ),
                   const SizedBox(width: 8),
-                  _sortChip('Price ↓', 'price_desc', tempSort, (v) => setSheet(() => tempSort = v)),
+                  _sortChip(
+                    'Price ↓',
+                    'price_desc',
+                    tempSort,
+                    (v) => setSheet(() => tempSort = v),
+                  ),
                 ],
               ),
               const SizedBox(height: 28),
-
-              // Apply Button
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
@@ -256,7 +299,7 @@ Future<void> _onFilterChanged(int index) async {
                     backgroundColor: AppColors.gold,
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
+                      borderRadius: BorderRadius.circular(14),
                     ),
                     elevation: 0,
                   ),
@@ -277,15 +320,23 @@ Future<void> _onFilterChanged(int index) async {
     );
   }
 
-  Widget _sortChip(String label, String value, String current, Function(String) onTap) {
+  Widget _sortChip(
+    String label,
+    String value,
+    String current,
+    Function(String) onTap,
+  ) {
     final isActive = current == value;
     return GestureDetector(
       onTap: () => onTap(value),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: isActive ? AppColors.gold : Colors.white10,
+          color: isActive ? AppColors.gold : AppColors.bgInput,
           borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isActive ? AppColors.gold : AppColors.border,
+          ),
         ),
         child: Text(
           label,
@@ -309,18 +360,32 @@ Future<void> _onFilterChanged(int index) async {
       final data = response.data;
       final List items = data['data'] ?? data ?? [];
       List<Map<String, dynamic>> results = _mapItems(items);
-
-      // Sort locally
       if (_sortBy == 'price_asc') {
         results.sort((a, b) {
-          final aP = double.tryParse(a['price']?.toString().replaceAll(RegExp(r'[^\d.]'), '') ?? '0') ?? 0;
-          final bP = double.tryParse(b['price']?.toString().replaceAll(RegExp(r'[^\d.]'), '') ?? '0') ?? 0;
+          final aP =
+              double.tryParse(
+                a['price']?.toString().replaceAll(RegExp(r'[^\d.]'), '') ?? '0',
+              ) ??
+              0;
+          final bP =
+              double.tryParse(
+                b['price']?.toString().replaceAll(RegExp(r'[^\d.]'), '') ?? '0',
+              ) ??
+              0;
           return aP.compareTo(bP);
         });
       } else if (_sortBy == 'price_desc') {
         results.sort((a, b) {
-          final aP = double.tryParse(a['price']?.toString().replaceAll(RegExp(r'[^\d.]'), '') ?? '0') ?? 0;
-          final bP = double.tryParse(b['price']?.toString().replaceAll(RegExp(r'[^\d.]'), '') ?? '0') ?? 0;
+          final aP =
+              double.tryParse(
+                a['price']?.toString().replaceAll(RegExp(r'[^\d.]'), '') ?? '0',
+              ) ??
+              0;
+          final bP =
+              double.tryParse(
+                b['price']?.toString().replaceAll(RegExp(r'[^\d.]'), '') ?? '0',
+              ) ??
+              0;
           return bP.compareTo(aP);
         });
       } else {
@@ -330,7 +395,6 @@ Future<void> _onFilterChanged(int index) async {
           return bR.compareTo(aR);
         });
       }
-
       if (mounted) setState(() => _places = results);
     } catch (e) {
       debugPrint('Apply filter error: $e');
@@ -339,15 +403,17 @@ Future<void> _onFilterChanged(int index) async {
     }
   }
 
-  // ══════════════════════════════════════
-  // HELPERS
-  // ══════════════════════════════════════
-
   List<Map<String, dynamic>> _mapItems(List items) {
     final images = [
-      AppAssets.pyramids, AppAssets.karnak, AppAssets.abuSimbel,
-      AppAssets.alexandria, AppAssets.philae, AppAssets.siwa,
-      AppAssets.nileSunset, AppAssets.luxorNight, AppAssets.valley,
+      AppAssets.pyramids,
+      AppAssets.karnak,
+      AppAssets.abuSimbel,
+      AppAssets.alexandria,
+      AppAssets.philae,
+      AppAssets.siwa,
+      AppAssets.nileSunset,
+      AppAssets.luxorNight,
+      AppAssets.valley,
       AppAssets.museum,
     ];
     return items.asMap().entries.map<Map<String, dynamic>>((entry) {
@@ -378,235 +444,314 @@ Future<void> _onFilterChanged(int index) async {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.bgDark,
-      body: SafeArea(
-        child: Column(
-          children: [
-            // ─── Header ─────────────────────────────
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-              child: Column(
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'Explore Egypt',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      Container(
-                        decoration: BoxDecoration(
-                          color: AppColors.bgCard,
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: Colors.white10),
-                        ),
-                        child: Row(
-                          children: [
-                            _toggleBtn(Icons.grid_view, true),
-                            _toggleBtn(Icons.view_list, false),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 14),
-
-                  // Search bar — fires on every keystroke
-                  Container(
-                    decoration: BoxDecoration(
-                      color: AppColors.bgInput,
-                      borderRadius: BorderRadius.circular(30),
-                      border: Border.all(
-                        color: _isSearching
-                            ? AppColors.gold.withOpacity(0.5)
-                            : Colors.white10,
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        const SizedBox(width: 16),
-                        const Icon(Icons.search, color: Colors.white38, size: 20),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: TextField(
-                            controller: _searchController,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 14,
-                            ),
-                            onChanged: _onSearchChanged,
-                            onTapOutside: (_) => FocusScope.of(context).unfocus(),
-                            decoration: const InputDecoration(
-                              hintText: 'Search places...',
-                              hintStyle: TextStyle(
-                                color: Colors.white38,
-                                fontSize: 14,
-                              ),
-                              border: InputBorder.none,
-                              isDense: true,
-                              contentPadding: EdgeInsets.symmetric(vertical: 13),
-                            ),
-                          ),
-                        ),
-                        // Clear button when searching
-                        if (_isSearching)
-                          GestureDetector(
-                            onTap: () {
-                              _searchController.clear();
-                              setState(() => _isSearching = false);
-                              _loadPlaces();
-                            },
-                            child: const Padding(
-                              padding: EdgeInsets.only(right: 8),
-                              child: Icon(Icons.close, color: Colors.white38, size: 18),
-                            ),
-                          ),
-                        // Tune/Filter button
-                        GestureDetector(
-                          onTap: _showFilterSheet,
-                          child: Container(
-                            margin: const EdgeInsets.only(right: 6),
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: (_minPrice > 0 || _maxPrice < 500)
-                                  ? AppColors.gold
-                                  : AppColors.gold.withOpacity(0.15),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Icon(
-                              Icons.tune,
-                              color: (_minPrice > 0 || _maxPrice < 500)
-                                  ? Colors.black
-                                  : AppColors.gold,
-                              size: 18,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 12),
-
-                  // Filter chips — calls API on tap
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: List.generate(
-                        _filters.length,
-                        (i) => Padding(
-                          padding: const EdgeInsets.only(right: 8),
-                          child: AmunFilterChip(
-                            label: _filters[i],
-                            isActive: _activeFilter == i,
-                            onTap: () => _onFilterChanged(i),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 14),
-
-                  SectionHeader(
-                    title: _isLoading
-                        ? 'Loading...'
-                        : '${_filtered.length} Places Found',
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 12),
-
-            // ─── Results ────────────────────────────
-            Expanded(
-              child: _isLoading
-                  ? const Center(
-                      child: CircularProgressIndicator(color: AppColors.gold),
-                    )
-                  : _filtered.isEmpty
-                      ? Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Icon(Icons.search_off,
-                                  color: Colors.white24, size: 48),
-                              const SizedBox(height: 12),
-                              Text(
-                                _isSearching
-                                    ? 'No results for "${_searchController.text}"'
-                                    : 'No places found',
-                                style: const TextStyle(color: Colors.white38),
-                              ),
-                            ],
-                          ),
-                        )
-                      : _isGrid
-                          ? GridView.builder(
-                              padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
-                              gridDelegate:
-                                  const SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: 2,
-                                crossAxisSpacing: 14,
-                                mainAxisSpacing: 14,
-                                childAspectRatio: 0.78,
-                              ),
-                              itemCount: _filtered.length,
-                              itemBuilder: (_, i) => PlaceCard(
-                                id: _filtered[i]['id'] is int
-                                    ? _filtered[i]['id']
-                                    : int.tryParse(
-                                        _filtered[i]['id']?.toString() ?? ''),
-                                image: _filtered[i]['img'] ?? '',
-                                name: _filtered[i]['name'] ?? '',
-                                location: _filtered[i]['loc'] ?? '',
-                                rating: _filtered[i]['rating'] ?? '',
-                                price: _filtered[i]['price'] ?? '',
-                                category: _filtered[i]['cat'] ?? '',
-                                style: PlaceCardStyle.grid,
-                                isNetworkImage: false,
-                                onTap: () => Navigator.pushNamed(
-                                  context,
-                                  '/place-details',
-                                  arguments: _filtered[i],
-                                ),
-                              ),
-                            )
-                          : ListView.separated(
-                              padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
-                              itemCount: _filtered.length,
-                              separatorBuilder: (_, __) =>
-                                  const SizedBox(height: 12),
-                              itemBuilder: (_, i) => PlaceCard(
-                                id: _filtered[i]['id'] is int
-                                    ? _filtered[i]['id']
-                                    : int.tryParse(
-                                        _filtered[i]['id']?.toString() ?? ''),
-                                image: _filtered[i]['img'] ?? '',
-                                name: _filtered[i]['name'] ?? '',
-                                location: _filtered[i]['loc'] ?? '',
-                                rating: _filtered[i]['rating'] ?? '',
-                                price: _filtered[i]['price'] ?? '',
-                                category: _filtered[i]['cat'] ?? '',
-                                style: PlaceCardStyle.list,
-                                isNetworkImage: false,
-                                onTap: () => Navigator.pushNamed(
-                                  context,
-                                  '/place-details',
-                                  arguments: _filtered[i],
-                                ),
-                              ),
-                            ),
-            ),
-          ],
+      body: AnimatedPageWrapper(
+        child: SafeArea(
+          child: Column(
+            children: [
+              _buildHeader(),
+              const SizedBox(height: 12),
+              Expanded(child: _buildBody(context)),
+            ],
+          ),
         ),
       ),
     );
+  }
+
+  Widget _buildHeader() {
+    final hasFilter = _minPrice > 0 || _maxPrice < 500;
+    return Container(
+      decoration: const BoxDecoration(
+        color: AppColors.bgCard,
+        border: Border(bottom: BorderSide(color: AppColors.border)),
+      ),
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 14),
+      child: Column(
+        children: [
+          // Title row
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // const Text(
+                  //   '',
+                  //   style: TextStyle(
+                  //     color: Colors.white54,
+                  //     fontSize: 13,
+                  //     letterSpacing: 0.3,
+                  //   ),
+                  // ),
+                  // const SizedBox(height: 2),
+                  const Text(
+                    ' Explore Egypt',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 0.3,
+                    ),
+                  ),
+                ],
+              ),
+              // Grid/List toggle
+              Container(
+                decoration: BoxDecoration(
+                  color: AppColors.bgInput,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.border),
+                ),
+                child: Row(
+                  children: [
+                    _toggleBtn(Icons.grid_view_rounded, true),
+                    _toggleBtn(Icons.view_list_rounded, false),
+                  ],
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 14),
+
+          // Search bar
+          Container(
+            decoration: BoxDecoration(
+              color: AppColors.bgInput,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: _isSearching ? AppColors.gold : AppColors.border,
+                width: _isSearching ? 1.5 : 1,
+              ),
+            ),
+            child: Row(
+              children: [
+                const SizedBox(width: 16),
+                const Icon(
+                  Icons.search_rounded,
+                  color: AppColors.gold,
+                  size: 20,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: TextField(
+                    controller: _searchController,
+                    style: const TextStyle(color: Colors.white, fontSize: 14),
+                    onChanged: _onSearchChanged,
+                    onTapOutside: (_) => FocusScope.of(context).unfocus(),
+                    decoration: const InputDecoration(
+                      hintText: 'Search places...',
+                      hintStyle: TextStyle(color: Colors.white38, fontSize: 14),
+                      border: InputBorder.none,
+                      isDense: true,
+                      contentPadding: EdgeInsets.symmetric(vertical: 14),
+                    ),
+                  ),
+                ),
+                if (_isSearching)
+                  GestureDetector(
+                    onTap: () {
+                      _searchController.clear();
+                      setState(() => _isSearching = false);
+                      _loadPlaces();
+                    },
+                    child: Container(
+                      margin: const EdgeInsets.only(right: 8),
+                      width: 28,
+                      height: 28,
+                      decoration: BoxDecoration(
+                        color: AppColors.bgCard,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: AppColors.border),
+                      ),
+                      child: const Icon(
+                        Icons.close_rounded,
+                        color: Colors.white54,
+                        size: 14,
+                      ),
+                    ),
+                  ),
+                // Filter button
+                GestureDetector(
+                  onTap: _showFilterSheet,
+                  child: Container(
+                    margin: const EdgeInsets.only(right: 8),
+                    padding: const EdgeInsets.all(9),
+                    decoration: BoxDecoration(
+                      color: hasFilter ? AppColors.gold : AppColors.goldDim,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppColors.borderGold),
+                    ),
+                    child: Icon(
+                      Icons.tune_rounded,
+                      color: hasFilter ? Colors.black : AppColors.gold,
+                      size: 18,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 12),
+
+          // Filter chips
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: List.generate(
+                _filters.length,
+                (i) => Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: AmunFilterChip(
+                    label: _filters[i],
+                    isActive: _activeFilter == i,
+                    onTap: () => _onFilterChanged(i),
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 12),
+
+          // Results count
+          Row(
+            children: [
+              Container(
+                width: 3,
+                height: 16,
+                decoration: BoxDecoration(
+                  color: AppColors.gold,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                _isLoading ? 'Loading...' : '${_filtered.length} Places Found',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBody(BuildContext context) {
+    if (_isLoading) {
+      return _isGrid
+          ? GridView.builder(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                crossAxisSpacing: 14,
+                mainAxisSpacing: 14,
+                childAspectRatio: 0.78,
+              ),
+              itemCount: 6,
+              itemBuilder: (_, __) => const SkeletonPlaceCard(),
+            )
+          : ListView.separated(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+              itemCount: 4,
+              separatorBuilder: (_, __) => const SizedBox(height: 12),
+              itemBuilder: (_, __) => const SkeletonListCard(),
+            );
+    }
+
+    if (_filtered.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 72,
+              height: 72,
+              decoration: BoxDecoration(
+                color: AppColors.bgCard,
+                shape: BoxShape.circle,
+                border: Border.all(color: AppColors.border),
+              ),
+              child: const Icon(
+                Icons.search_off_rounded,
+                color: Colors.white24,
+                size: 32,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              _isSearching
+                  ? 'No results for "${_searchController.text}"'
+                  : 'No places found',
+              style: const TextStyle(color: Colors.white38, fontSize: 15),
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              'Try a different keyword or filter',
+              style: TextStyle(color: Colors.white24, fontSize: 12),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return _isGrid
+        ? GridView.builder(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              crossAxisSpacing: 14,
+              mainAxisSpacing: 14,
+              childAspectRatio: 0.78,
+            ),
+            itemCount: _filtered.length,
+            itemBuilder: (_, i) => PlaceCard(
+              id: _filtered[i]['id'] is int
+                  ? _filtered[i]['id']
+                  : int.tryParse(_filtered[i]['id']?.toString() ?? ''),
+              image: _filtered[i]['img'] ?? '',
+              name: _filtered[i]['name'] ?? '',
+              location: _filtered[i]['loc'] ?? '',
+              rating: _filtered[i]['rating'] ?? '',
+              price: _filtered[i]['price'] ?? '',
+              category: _filtered[i]['cat'] ?? '',
+              style: PlaceCardStyle.grid,
+              isNetworkImage: false,
+              onTap: () => Navigator.pushNamed(
+                context,
+                '/place-details',
+                arguments: _filtered[i],
+              ),
+            ),
+          )
+        : ListView.separated(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+            itemCount: _filtered.length,
+            separatorBuilder: (_, __) => const SizedBox(height: 12),
+            itemBuilder: (_, i) => PlaceCard(
+              id: _filtered[i]['id'] is int
+                  ? _filtered[i]['id']
+                  : int.tryParse(_filtered[i]['id']?.toString() ?? ''),
+              image: _filtered[i]['img'] ?? '',
+              name: _filtered[i]['name'] ?? '',
+              location: _filtered[i]['loc'] ?? '',
+              rating: _filtered[i]['rating'] ?? '',
+              price: _filtered[i]['price'] ?? '',
+              category: _filtered[i]['cat'] ?? '',
+              style: PlaceCardStyle.list,
+              isNetworkImage: false,
+              onTap: () => Navigator.pushNamed(
+                context,
+                '/place-details',
+                arguments: _filtered[i],
+              ),
+            ),
+          );
   }
 
   Widget _toggleBtn(IconData icon, bool isGrid) {
@@ -614,10 +759,10 @@ Future<void> _onFilterChanged(int index) async {
     return GestureDetector(
       onTap: () => setState(() => _isGrid = isGrid),
       child: Container(
-        padding: const EdgeInsets.all(8),
+        padding: const EdgeInsets.all(9),
         decoration: BoxDecoration(
           color: active ? AppColors.gold : Colors.transparent,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(10),
         ),
         child: Icon(
           icon,

@@ -1,89 +1,86 @@
-// Models for Booking Feature
+// 📁 lib/features/booking/models/booking_models.dart
 
 class BookingModel {
-  final int id;
-  final int tourId;
-  final int userId;
-  final int numberOfPeople;
-  final double totalPrice;
-  final String status; // 'pending', 'approved', 'rejected', 'completed'
-  final String? notes;
-  final DateTime bookingDate;
-  final DateTime tourDate;
+  final String id;
+  final String tourId;
+  final String tourName;
+  final String guideName;
+  final String? tourImageUrl;
+  final String? location;
+  final int durationDays;
+  final double pricePerPerson;
+  final int travelerCount;
+  final DateTime selectedDate;
+  final String status; // pending | approved | rejected
+  final String? meetingPoint;
+  final String? paymentStatus;
   final DateTime createdAt;
-  final DateTime updatedAt;
-  final Map<String, dynamic>? tour; // Nested tour data
-  final Map<String, dynamic>? user; // Nested user data
 
-  BookingModel({
+  const BookingModel({
     required this.id,
     required this.tourId,
-    required this.userId,
-    required this.numberOfPeople,
-    required this.totalPrice,
+    required this.tourName,
+    required this.guideName,
+    this.tourImageUrl,
+    this.location,
+    required this.durationDays,
+    required this.pricePerPerson,
+    required this.travelerCount,
+    required this.selectedDate,
     required this.status,
-    this.notes,
-    required this.bookingDate,
-    required this.tourDate,
+    this.meetingPoint,
+    this.paymentStatus,
     required this.createdAt,
-    required this.updatedAt,
-    this.tour,
-    this.user,
   });
+
+  double get totalPrice => pricePerPerson * travelerCount;
 
   factory BookingModel.fromJson(Map<String, dynamic> json) {
     return BookingModel(
-      id: json['id'] ?? 0,
-      tourId: json['tour_id'] ?? 0,
-      userId: json['user_id'] ?? 0,
-      numberOfPeople: json['number_of_people'] ?? 0,
-      totalPrice: (json['total_price'] ?? 0).toDouble(),
+      id: json['id']?.toString() ?? '',
+      tourId: json['tour_id']?.toString() ?? json['tourId']?.toString() ?? '',
+      tourName: json['tour_name'] ?? json['tourName'] ?? '',
+      guideName: json['guide_name'] ?? json['guideName'] ?? '',
+      tourImageUrl: json['tour_image_url'] ?? json['tourImageUrl'],
+      location: json['location'],
+      durationDays: json['duration_days'] ?? json['durationDays'] ?? 1,
+      pricePerPerson:
+          (json['price_per_person'] ?? json['pricePerPerson'] ?? 0).toDouble(),
+      travelerCount: json['traveler_count'] ?? json['travelerCount'] ?? 1,
+      selectedDate: DateTime.tryParse(
+              json['selected_date'] ?? json['selectedDate'] ?? '') ??
+          DateTime.now(),
       status: json['status'] ?? 'pending',
-      notes: json['notes'],
-      bookingDate:
-          DateTime.tryParse(json['booking_date'] ?? '') ?? DateTime.now(),
-      tourDate: DateTime.tryParse(json['tour_date'] ?? '') ?? DateTime.now(),
-      createdAt: DateTime.tryParse(json['created_at'] ?? '') ?? DateTime.now(),
-      updatedAt: DateTime.tryParse(json['updated_at'] ?? '') ?? DateTime.now(),
-      tour: json['tour'],
-      user: json['user'],
+      meetingPoint: json['meeting_point'] ?? json['meetingPoint'],
+      paymentStatus: json['payment_status'] ?? json['paymentStatus'],
+      createdAt:
+          DateTime.tryParse(json['created_at'] ?? json['createdAt'] ?? '') ??
+              DateTime.now(),
     );
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
         'tour_id': tourId,
-        'user_id': userId,
-        'number_of_people': numberOfPeople,
-        'total_price': totalPrice,
-        'status': status,
-        'notes': notes,
-        'booking_date': bookingDate.toIso8601String(),
-        'tour_date': tourDate.toIso8601String(),
-        'created_at': createdAt.toIso8601String(),
-        'updated_at': updatedAt.toIso8601String(),
-        'tour': tour,
-        'user': user,
+        'traveler_count': travelerCount,
+        'selected_date': selectedDate.toIso8601String(),
       };
 }
 
+// ── Request model (used when creating a new booking) ──────────────────────────
 class BookingRequestModel {
-  final int tourId;
-  final int numberOfPeople;
-  final DateTime tourDate;
-  final String? notes;
+  final String tourId;
+  final int travelerCount;
+  final DateTime selectedDate;
 
-  BookingRequestModel({
+  const BookingRequestModel({
     required this.tourId,
-    required this.numberOfPeople,
-    required this.tourDate,
-    this.notes,
+    required this.travelerCount,
+    required this.selectedDate,
   });
 
   Map<String, dynamic> toJson() => {
         'tour_id': tourId,
-        'number_of_people': numberOfPeople,
-        'tour_date': tourDate.toIso8601String(),
-        'notes': notes,
+        'traveler_count': travelerCount,
+        'selected_date': selectedDate.toIso8601String(),
       };
 }

@@ -29,4 +29,34 @@ class AppTextStyles {
   // Buttons
   static const TextStyle btnDark  = TextStyle(color: Colors.black, fontSize: 16, fontWeight: FontWeight.bold);
   static const TextStyle btnWhite = TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold);
+
+  // ✨ Added
+  static const TextStyle displayLarge = TextStyle(
+    color: AppColors.gold,
+    fontSize: 42,
+    fontWeight: FontWeight.bold,
+    letterSpacing: 6,
+    height: 1.1,
+  );
+
+  static const TextStyle caption = TextStyle(
+    color: AppColors.textMuted,
+    fontSize: 11,
+    fontWeight: FontWeight.w500,
+    letterSpacing: 0.3,
+  );
+
+  static const TextStyle btnGold = TextStyle(
+    color: AppColors.gold,
+    fontSize: 16,
+    fontWeight: FontWeight.bold,
+    letterSpacing: 0.5,
+  );
+
+  static const TextStyle tourPrice = TextStyle(
+    color: AppColors.gold,
+    fontSize: 18,
+    fontWeight: FontWeight.bold,
+    letterSpacing: 0.3,
+  );
 }

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 // Core
 import 'core/constants/app_colors.dart';
+import 'core/constants/app_theme.dart';
 
 // Auth
 import 'screens/auth/splash_screen.dart';
@@ -20,6 +21,7 @@ import 'screens/tourist/profile_screen.dart';
 import 'screens/tourist/notifications_screen.dart';
 import 'screens/tourist/edit_profile_screen.dart';
 import 'screens/tourist/saved_places_screen.dart';
+import 'screens/guide/guide_main_navigation.dart';
 
 // Explore
 import 'screens/explore/explore_screen.dart';
@@ -47,9 +49,12 @@ import 'screens/admin/manage_users_screen.dart';
 import 'screens/general/community_screen.dart';
 import 'screens/general/post_details_screen.dart';
 import 'screens/general/about_Us_screen.dart';
-// import 'screens/payment/...';
-// import 'screens/admin/...';
-// import 'screens/general/...';
+
+import 'screens/guide/guide_tours_screen.dart';
+
+import 'screens/booking/booking_summary_screen.dart';
+import 'screens/booking/booking_confirmed_screen.dart';
+import 'screens/booking/my_bookings_screen.dart';
 
 void main() => runApp(const AmunGuideApp());
 
@@ -61,24 +66,9 @@ class AmunGuideApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Amun Guide',
-      theme: ThemeData(
-        brightness: Brightness.dark,
-        scaffoldBackgroundColor: AppColors.bgDark,
-        primaryColor: AppColors.gold,
-        colorScheme: const ColorScheme.dark(
-          primary: AppColors.gold,
-          surface: AppColors.bgCard,
-        ),
-      ),
+      theme: AppTheme.darkTheme,
       home: const SplashScreen(),
       routes: {
-        // ══════════════════════════════════════
-        // AUTH
-        // splash → onboarding → welcome → user_selection
-        //       → login → home
-        //       → register → home
-        //       → forgot_password → reset_password → login
-        // ══════════════════════════════════════
         '/splash': (ctx) => const SplashScreen(),
         '/onboarding': (ctx) => const OnboardingScreen(),
         '/welcome': (ctx) => const WelcomeScreen(),
@@ -88,55 +78,48 @@ class AmunGuideApp extends StatelessWidget {
         '/forgot-password': (ctx) => ForgotPasswordScreen(),
         '/reset-password': (ctx) => const ResetPasswordScreen(),
 
-        // ══════════════════════════════════════
-        // MAIN APP
-        // ══════════════════════════════════════
         '/home': (ctx) => const MainNavigation(),
+        '/guide-home': (ctx) => const GuideMainNavigation(),
+        '/guide-tours': (ctx) => const GuideToursScreen(),
 
-        // ══════════════════════════════════════
-        // TOURIST
-        // ══════════════════════════════════════
         '/notifications': (ctx) => const NotificationsScreen(),
         '/profile': (ctx) => const ProfileScreen(),
         '/edit-profile': (ctx) => const EditProfileScreen(),
         '/saved-places': (ctx) => const SavedPlacesScreen(),
 
-        // ══════════════════════════════════════
-        // EXPLORE
-        // ══════════════════════════════════════
         '/explore': (ctx) => const ExploreScreen(),
         '/place-details': (ctx) => const PlaceDetailsScreen(),
         '/tour-details': (ctx) => const TourDetailsScreen(),
         '/map': (ctx) => const MapScreen(tourTitle: '', places: []),
 
-        // ══════════════════════════════════════
-        // AI — يتضاف في Section 4
-        // ══════════════════════════════════════
         '/ai-chat': (ctx) => const AiChatScreen(),
         '/ai-plan-details': (ctx) => const AiPlanDetailsScreen(),
 
-        // ══════════════════════════════════════
-        // PAYMENT — يتضاف في Section 5
-        // ══════════════════════════════════════
-        '/payment-receipts': (ctx) => const PaymentReceiptsScreen(),
+        '/payment-receipts': (ctx) {
+          final args =
+              ModalRoute.of(ctx)?.settings.arguments as Map<String, dynamic>?;
+          return PaymentReceiptsScreen(
+            bookingId: args?['bookingId'],
+            amount: args?['amount']?.toDouble(),
+            tourName: args?['tourName'],
+          );
+        },
         '/payment-success': (ctx) => const PaymentSuccessScreen(),
         '/payment-failed': (ctx) => const PaymentFailedScreen(),
 
-        // ══════════════════════════════════════
-        // ADMIN — يتضاف في Section 6
-        // ══════════════════════════════════════
         '/admin': (ctx) => const AdminDashboardScreen(),
         '/approve-payments': (ctx) => const ApprovePaymentsScreen(),
         '/create-tour': (ctx) => const CreateNewTourScreen(),
         '/manage-tours': (ctx) => const ManageToursScreen(),
         '/manage-users': (ctx) => const ManageUsersScreen(),
 
-        // ══════════════════════════════════════
-        // GENERAL — يتضاف في Section 7
-        // ══════════════════════════════════════
         '/community': (ctx) => const CommunityScreen(),
         '/post-details': (ctx) => const PostDetailsScreen(),
         '/about-us': (ctx) => const AboutUsScreen(),
+
+        '/booking-summary': (ctx) => const BookingSummaryScreen(),
+        '/booking-confirmed': (ctx) => const BookingConfirmedScreen(),
+        '/my-bookings': (ctx) => const MyBookingsScreen(),
       },
     );
   }

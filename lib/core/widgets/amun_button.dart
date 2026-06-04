@@ -28,30 +28,41 @@ class AmunButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final child = isLoading
-        ? const SizedBox(
-      width: 20, height: 20,
-      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black),
-    )
-        : Row(
-      mainAxisSize: MainAxisSize.min,
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        if (icon != null) ...[
-          Icon(icon, size: 18,
-              color: variant == AmunButtonVariant.filled
-                  ? Colors.black
-                  : AppColors.gold),
-          const SizedBox(width: 8),
-        ],
-        Text(label,
-            style: variant == AmunButtonVariant.filled
-                ? AppTextStyles.btnDark
-                : AppTextStyles.btnDark.copyWith(color: AppColors.gold)),
-      ],
-    );
+    final isLight = variant == AmunButtonVariant.filled;
 
-    final shape = RoundedRectangleBorder(borderRadius: BorderRadius.circular(30));
+    final child = isLoading
+        ? SizedBox(
+            width: 20,
+            height: 20,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              color: isLight ? Colors.black : AppColors.gold,
+            ),
+          )
+        : Row(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              if (icon != null) ...[
+                Icon(
+                  icon,
+                  size: 18,
+                  color: isLight ? Colors.black : AppColors.gold,
+                ),
+                const SizedBox(width: 8),
+              ],
+              Text(
+                label,
+                style: isLight
+                    ? AppTextStyles.btnDark
+                    : AppTextStyles.btnDark.copyWith(color: AppColors.gold),
+              ),
+            ],
+          );
+
+    final shape = RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(14),
+    );
 
     Widget btn;
     switch (variant) {
@@ -60,9 +71,14 @@ class AmunButton extends StatelessWidget {
           onPressed: isLoading ? null : onTap,
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColors.gold,
-            padding: EdgeInsets.symmetric(vertical: verticalPadding, horizontal: 24),
+            foregroundColor: Colors.black,
+            padding: EdgeInsets.symmetric(
+              vertical: verticalPadding,
+              horizontal: 24,
+            ),
             shape: shape,
             elevation: 0,
+            shadowColor: AppColors.gold.withOpacity(0.3),
           ),
           child: child,
         );
@@ -71,8 +87,12 @@ class AmunButton extends StatelessWidget {
         btn = OutlinedButton(
           onPressed: isLoading ? null : onTap,
           style: OutlinedButton.styleFrom(
-            side: const BorderSide(color: AppColors.gold),
-            padding: EdgeInsets.symmetric(vertical: verticalPadding, horizontal: 24),
+            foregroundColor: AppColors.gold,
+            side: const BorderSide(color: AppColors.gold, width: 1.5),
+            padding: EdgeInsets.symmetric(
+              vertical: verticalPadding,
+              horizontal: 24,
+            ),
             shape: shape,
           ),
           child: child,

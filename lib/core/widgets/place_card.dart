@@ -2,7 +2,6 @@
 
 import 'package:flutter/material.dart';
 import '../constants/app_colors.dart';
-import '../services/dio_client.dart';
 import '../services/likes_service.dart';
 
 enum PlaceCardStyle { grid, list }
@@ -59,16 +58,9 @@ class _PlaceCardState extends State<PlaceCard> {
   }
 
   Future<void> _handleSave() async {
-    // If the parent provided an onSave callback, call it (e.g., to remove from a list)
-    if (widget.onSave != null) {
-      widget.onSave!();
-    }
-
+    if (widget.onSave != null) widget.onSave!();
     if (widget.id == null) return;
-
-    // Optimistic update
     setState(() => _isSaved = !_isSaved);
-
     try {
       final likesService = LikesService();
       await likesService.toggleLike(
@@ -77,7 +69,6 @@ class _PlaceCardState extends State<PlaceCard> {
       );
     } catch (e) {
       debugPrint('Error toggling favorite: $e');
-      // Revert if API call fails
       if (mounted) {
         setState(() => _isSaved = !_isSaved);
         ScaffoldMessenger.of(context).showSnackBar(
@@ -90,20 +81,46 @@ class _PlaceCardState extends State<PlaceCard> {
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return widget.style == PlaceCardStyle.grid ? _gridCard() : _listCard();
+  Widget _buildImage(double height) {
+    final isNetwork = widget.isNetworkImage && widget.image.startsWith('http');
+    return SizedBox(
+      height: height,
+      width: double.infinity,
+      child: isNetwork
+          ? Image.network(
+              widget.image,
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => _imageFallback(),
+            )
+          : Image.asset(
+              widget.image,
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => _imageFallback(),
+            ),
+    );
   }
 
-  // ─── Grid Style ───────────────────────────────────────
+  Widget _imageFallback() => Container(
+        color: AppColors.bgInput,
+        child: const Icon(Icons.image_outlined,
+            color: Colors.white24, size: 40),
+      );
+
+  @override
+  Widget build(BuildContext context) {
+    return widget.style == PlaceCardStyle.grid
+        ? _gridCard()
+        : _listCard();
+  }
+
   Widget _gridCard() {
     return GestureDetector(
       onTap: widget.onTap,
       child: Container(
         decoration: BoxDecoration(
           color: AppColors.bgCard,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.white10),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: AppColors.border),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -112,80 +129,64 @@ class _PlaceCardState extends State<PlaceCard> {
               children: [
                 ClipRRect(
                   borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(16),
-                  ),
-                  child: SizedBox(
-                    height: 120,
-                    width: double.infinity,
-                    child:
-                        widget.isNetworkImage && widget.image.startsWith('http')
-                        ? Image.network(
-                            widget.image,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => Container(
-                              color: AppColors.bgInput,
-                              child: const Icon(
-                                Icons.image,
-                                color: Colors.white24,
-                                size: 40,
-                              ),
-                            ),
-                          )
-                        : Image.asset(
-                            widget.image,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => Container(
-                              color: AppColors.bgInput,
-                              child: const Icon(
-                                Icons.image,
-                                color: Colors.white24,
-                                size: 40,
-                              ),
-                            ),
-                          ),
+                      top: Radius.circular(20)),
+                  child: _buildImage(130),
+                ),
+                Positioned.fill(
+                  child: ClipRRect(
+                    borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(20)),
+                    child: Container(
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [Colors.transparent, Colors.black54],
+                        ),
+                      ),
+                    ),
                   ),
                 ),
-                // Save button
                 Positioned(
-                  top: 8,
-                  right: 8,
+                  top: 10,
+                  right: 10,
                   child: GestureDetector(
                     onTap: _handleSave,
                     child: Container(
-                      width: 32,
-                      height: 32,
-                      decoration: const BoxDecoration(
-                        color: Colors.black54,
+                      width: 34,
+                      height: 34,
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.5),
                         shape: BoxShape.circle,
+                        border: Border.all(color: AppColors.border),
                       ),
                       child: Icon(
-                        _isSaved ? Icons.bookmark : Icons.bookmark_outline,
+                        _isSaved
+                            ? Icons.bookmark
+                            : Icons.bookmark_outline,
                         color: _isSaved ? AppColors.gold : Colors.white,
                         size: 16,
                       ),
                     ),
                   ),
                 ),
-                // Category
                 if (widget.category != null)
                   Positioned(
-                    bottom: 8,
-                    left: 8,
+                    bottom: 10,
+                    left: 10,
                     child: Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 3,
-                      ),
+                          horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
-                        color: Colors.black54,
-                        borderRadius: BorderRadius.circular(8),
+                        color: AppColors.gold,
+                        borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
                         widget.category!,
                         style: const TextStyle(
-                          color: Colors.white,
+                          color: Colors.black,
                           fontSize: 10,
-                          fontWeight: FontWeight.w600,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
                     ),
@@ -193,7 +194,7 @@ class _PlaceCardState extends State<PlaceCard> {
               ],
             ),
             Padding(
-              padding: const EdgeInsets.all(10),
+              padding: const EdgeInsets.all(12),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -202,33 +203,44 @@ class _PlaceCardState extends State<PlaceCard> {
                     style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
-                      fontSize: 13,
+                      fontSize: 14,
+                      letterSpacing: 0.2,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    widget.location,
-                    style: const TextStyle(color: Colors.white38, fontSize: 11),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      const Icon(Icons.location_on_outlined,
+                          color: AppColors.gold, size: 12),
+                      const SizedBox(width: 3),
+                      Expanded(
+                        child: Text(
+                          widget.location,
+                          style: const TextStyle(
+                              color: Colors.white38, fontSize: 11),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 8),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Row(
                         children: [
-                          const Icon(
-                            Icons.star,
-                            color: AppColors.gold,
-                            size: 12,
-                          ),
+                          const Icon(Icons.star_rounded,
+                              color: AppColors.gold, size: 13),
                           const SizedBox(width: 3),
                           Text(
                             widget.rating,
                             style: const TextStyle(
                               color: Colors.white54,
                               fontSize: 11,
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
                         ],
@@ -237,7 +249,7 @@ class _PlaceCardState extends State<PlaceCard> {
                         widget.price,
                         style: const TextStyle(
                           color: AppColors.gold,
-                          fontSize: 11,
+                          fontSize: 12,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -252,7 +264,6 @@ class _PlaceCardState extends State<PlaceCard> {
     );
   }
 
-  // ─── List Style ───────────────────────────────────────
   Widget _listCard() {
     return GestureDetector(
       onTap: widget.onTap,
@@ -260,97 +271,83 @@ class _PlaceCardState extends State<PlaceCard> {
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: AppColors.bgCard,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.white10),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: AppColors.border),
         ),
         child: Row(
           children: [
             ClipRRect(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(14),
               child: SizedBox(
-                width: 90,
-                height: 90,
-                child: widget.isNetworkImage && widget.image.startsWith('http')
+                width: 95,
+                height: 95,
+                child: widget.isNetworkImage &&
+                        widget.image.startsWith('http')
                     ? Image.network(
                         widget.image,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Image.asset(
-                          'assets/images/pyramids.jpg',
-                          fit: BoxFit.cover,
-                        ),
+                        errorBuilder: (_, __, ___) => _imageFallback(),
                       )
                     : Image.asset(
                         widget.image,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Container(
-                          color: AppColors.bgInput,
-                          child: const Icon(
-                            Icons.image,
-                            color: Colors.white24,
-                            size: 32,
-                          ),
-                        ),
+                        errorBuilder: (_, __, ___) => _imageFallback(),
                       ),
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 14),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (widget.category != null)
+                  if (widget.category != null) ...[
                     Text(
                       widget.category!,
                       style: const TextStyle(
                         color: AppColors.gold,
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
+                        letterSpacing: 0.5,
                       ),
                     ),
-                  if (widget.category != null) const SizedBox(height: 3),
+                    const SizedBox(height: 3),
+                  ],
                   Text(
                     widget.name,
                     style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
-                      fontSize: 14,
+                      fontSize: 15,
                     ),
                   ),
-                  const SizedBox(height: 3),
+                  const SizedBox(height: 4),
                   Row(
                     children: [
-                      const Icon(
-                        Icons.location_on_outlined,
-                        color: Colors.white38,
-                        size: 12,
-                      ),
+                      const Icon(Icons.location_on_outlined,
+                          color: Colors.white38, size: 12),
                       const SizedBox(width: 3),
                       Text(
                         widget.location,
                         style: const TextStyle(
-                          color: Colors.white38,
-                          fontSize: 12,
-                        ),
+                            color: Colors.white38, fontSize: 12),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 8),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Row(
                         children: [
-                          const Icon(
-                            Icons.star,
-                            color: AppColors.gold,
-                            size: 13,
-                          ),
+                          const Icon(Icons.star_rounded,
+                              color: AppColors.gold, size: 14),
                           const SizedBox(width: 3),
                           Text(
                             widget.rating,
                             style: const TextStyle(
                               color: Colors.white54,
                               fontSize: 12,
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
                         ],
@@ -359,7 +356,7 @@ class _PlaceCardState extends State<PlaceCard> {
                         widget.price,
                         style: const TextStyle(
                           color: AppColors.gold,
-                          fontSize: 12,
+                          fontSize: 13,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -368,12 +365,28 @@ class _PlaceCardState extends State<PlaceCard> {
                 ],
               ),
             ),
-            IconButton(
-              onPressed: _handleSave,
-              icon: Icon(
-                _isSaved ? Icons.bookmark : Icons.bookmark_outline,
-                color: _isSaved ? AppColors.gold : Colors.white38,
-                size: 20,
+            GestureDetector(
+              onTap: _handleSave,
+              child: Container(
+                width: 36,
+                height: 36,
+                margin: const EdgeInsets.only(left: 8),
+                decoration: BoxDecoration(
+                  color: _isSaved
+                      ? AppColors.goldDim
+                      : Colors.transparent,
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color:
+                        _isSaved ? AppColors.gold : AppColors.border,
+                  ),
+                ),
+                child: Icon(
+                  _isSaved ? Icons.bookmark : Icons.bookmark_outline,
+                  color:
+                      _isSaved ? AppColors.gold : Colors.white38,
+                  size: 18,
+                ),
               ),
             ),
           ],
