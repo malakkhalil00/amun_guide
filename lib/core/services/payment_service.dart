@@ -10,17 +10,19 @@ class PaymentService {
     required double amount,
     required String payableType,
     required int payableId,
-    String? receiptImagePath,
+    String? receiptImageUrl,
+    String? notes,
   }) async {
-    final formData = FormData.fromMap({
-      'amount': amount,
-      'payable_type': payableType,
-      'payable_id': payableId,
-      if (receiptImagePath != null)
-        'receipt_image':
-            await MultipartFile.fromFile(receiptImagePath, filename: 'receipt.jpg'),
-    });
-    return await _dio.post(Api.payments, data: formData);
+    return await _dio.post(
+      Api.payments,
+      data: {
+        'amount': amount,
+        'payable_type': payableType,
+        'payable_id': payableId,
+        if (receiptImageUrl != null) 'receipt_image': receiptImageUrl,
+        if (notes != null && notes.isNotEmpty) 'notes': notes,
+      },
+    );
   }
 
   /// Get my payments
@@ -34,13 +36,19 @@ class PaymentService {
   }
 
   /// Update payment (with optional receipt image)
-  Future<Response> updatePayment(int id, {String? notes, String? receiptImagePath}) async {
+  Future<Response> updatePayment(
+    int id, {
+    String? notes,
+    String? receiptImagePath,
+  }) async {
     final formData = FormData.fromMap({
       '_method': 'PUT',
       if (notes != null) 'notes': notes,
       if (receiptImagePath != null)
-        'receipt_image':
-            await MultipartFile.fromFile(receiptImagePath, filename: 'receipt.jpg'),
+        'receipt_image': await MultipartFile.fromFile(
+          receiptImagePath,
+          filename: 'receipt.jpg',
+        ),
     });
     return await _dio.post(Api.paymentById(id), data: formData);
   }
@@ -71,9 +79,10 @@ class PaymentService {
 
   /// Bulk approve payments
   Future<Response> bulkApprove(List<int> paymentIds) async {
-    return await _dio.post(Api.paymentBulkApprove, data: {
-      'payment_ids': paymentIds,
-    });
+    return await _dio.post(
+      Api.paymentBulkApprove,
+      data: {'payment_ids': paymentIds},
+    );
   }
 
   /// Get user's payments (admin)

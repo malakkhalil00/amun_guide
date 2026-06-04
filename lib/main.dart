@@ -34,7 +34,8 @@ import 'screens/ai/ai_chat_screen.dart';
 import 'screens/ai/ai_plan_details_screen.dart';
 
 // Payment
-import 'screens/payment/payment_receipts_screen.dart';
+import 'screens/payment/complete_payment_screen.dart';
+import 'screens/payment/my_payments_screen.dart';
 import 'screens/payment/payment_success_screen.dart';
 import 'screens/payment/payment_failed_screen.dart';
 
@@ -95,15 +96,16 @@ class AmunGuideApp extends StatelessWidget {
         '/ai-chat': (ctx) => const AiChatScreen(),
         '/ai-plan-details': (ctx) => const AiPlanDetailsScreen(),
 
-        '/payment-receipts': (ctx) {
+        '/complete-payment': (ctx) {
           final args =
               ModalRoute.of(ctx)?.settings.arguments as Map<String, dynamic>?;
-          return PaymentReceiptsScreen(
+          return CompletePaymentScreen(
             bookingId: args?['bookingId'],
             amount: args?['amount']?.toDouble(),
             tourName: args?['tourName'],
           );
         },
+        '/my-payments': (ctx) => const MyPaymentsScreen(),
         '/payment-success': (ctx) => const PaymentSuccessScreen(),
         '/payment-failed': (ctx) => const PaymentFailedScreen(),
 

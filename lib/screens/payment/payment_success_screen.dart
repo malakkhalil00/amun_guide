@@ -26,9 +26,10 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen>
   void initState() {
     super.initState();
     _controller = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 600));
-    _scaleAnim =
-        CurvedAnimation(parent: _controller, curve: Curves.elasticOut);
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
+    _scaleAnim = CurvedAnimation(parent: _controller, curve: Curves.elasticOut);
     _controller.forward();
   }
 
@@ -74,26 +75,35 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen>
                     shape: BoxShape.circle,
                     border: Border.all(color: AppColors.gold, width: 3),
                   ),
-                  child: const Icon(Icons.check_rounded,
-                      color: AppColors.gold, size: 60),
+                  child: const Icon(
+                    Icons.check_rounded,
+                    color: AppColors.gold,
+                    size: 60,
+                  ),
                 ),
               ),
 
               const SizedBox(height: 32),
 
-              const Text('Receipt Uploaded!',
-                  style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 26,
-                      fontWeight: FontWeight.bold)),
+              const Text(
+                'Receipt Uploaded!',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 26,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
 
               const SizedBox(height: 12),
 
               const Text(
                 'Your receipt has been submitted\nsuccessfully and is under review.',
                 textAlign: TextAlign.center,
-                style:
-                    TextStyle(color: Colors.white54, fontSize: 15, height: 1.6),
+                style: TextStyle(
+                  color: Colors.white54,
+                  fontSize: 15,
+                  height: 1.6,
+                ),
               ),
 
               const SizedBox(height: 32),
@@ -106,27 +116,35 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen>
                   borderRadius: BorderRadius.circular(18),
                   border: Border.all(color: Colors.white10),
                 ),
-                child: Column(children: [
-                  if (_transactionId.isNotEmpty) ...[
-                    _detailRow('Transaction ID', '#$_transactionId'),
-                    const Divider(color: Colors.white10, height: 24),
+                child: Column(
+                  children: [
+                    if (_transactionId.isNotEmpty) ...[
+                      _detailRow('Transaction ID', '#$_transactionId'),
+                      const Divider(color: Colors.white10, height: 24),
+                    ],
+                    if (_tourName.isNotEmpty) ...[
+                      _detailRow('Tour', _tourName),
+                      const Divider(color: Colors.white10, height: 24),
+                    ],
+                    if (_amount.isNotEmpty) ...[
+                      _detailRow(
+                        'Amount',
+                        '\$$_amount',
+                        valueColor: AppColors.gold,
+                      ),
+                      const Divider(color: Colors.white10, height: 24),
+                    ],
+                    _detailRow(
+                      'Status',
+                      'Under Review',
+                      valueColor: Colors.orange,
+                    ),
+                    if (_submittedAt.isNotEmpty) ...[
+                      const Divider(color: Colors.white10, height: 24),
+                      _detailRow('Submitted', _submittedAt),
+                    ],
                   ],
-                  if (_tourName.isNotEmpty) ...[
-                    _detailRow('Tour', _tourName),
-                    const Divider(color: Colors.white10, height: 24),
-                  ],
-                  if (_amount.isNotEmpty) ...[
-                    _detailRow('Amount', '\$$_amount',
-                        valueColor: AppColors.gold),
-                    const Divider(color: Colors.white10, height: 24),
-                  ],
-                  _detailRow('Status', 'Under Review',
-                      valueColor: Colors.orange),
-                  if (_submittedAt.isNotEmpty) ...[
-                    const Divider(color: Colors.white10, height: 24),
-                    _detailRow('Submitted', _submittedAt),
-                  ],
-                ]),
+                ),
               ),
 
               const Spacer(),
@@ -135,7 +153,10 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen>
               AmunButton(
                 label: 'Back to Dashboard',
                 onTap: () => Navigator.pushNamedAndRemoveUntil(
-                    context, '/home', (route) => false),
+                  context,
+                  '/home',
+                  (route) => false,
+                ),
                 icon: Icons.home_outlined,
               ),
 
@@ -143,8 +164,8 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen>
 
               AmunButton(
                 label: 'View All Receipts',
-                onTap: () => Navigator.pushReplacementNamed(
-                    context, '/payment-receipts'),
+                onTap: () =>
+                    Navigator.pushReplacementNamed(context, '/my-payments'),
                 variant: AmunButtonVariant.outlined,
                 icon: Icons.receipt_long_outlined,
               ),
@@ -159,15 +180,20 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen>
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label,
-            style: const TextStyle(color: Colors.white38, fontSize: 13)),
+        Text(
+          label,
+          style: const TextStyle(color: Colors.white38, fontSize: 13),
+        ),
         Flexible(
-          child: Text(value,
-              textAlign: TextAlign.end,
-              style: TextStyle(
-                  color: valueColor ?? Colors.white,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 13)),
+          child: Text(
+            value,
+            textAlign: TextAlign.end,
+            style: TextStyle(
+              color: valueColor ?? Colors.white,
+              fontWeight: FontWeight.w600,
+              fontSize: 13,
+            ),
+          ),
         ),
       ],
     );

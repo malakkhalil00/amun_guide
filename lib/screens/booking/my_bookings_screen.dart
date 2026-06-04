@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/services/tour_booking_service.dart';
 import '../tourist/main_navigation.dart';
-import '../payment/payment_receipts_screen.dart';
+import '../payment/complete_payment_screen.dart';
 
 class MyBookingsScreen extends StatefulWidget {
   const MyBookingsScreen({super.key});
@@ -23,7 +23,7 @@ class _MyBookingsScreenState extends State<MyBookingsScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 4, vsync: this); // ← 4 tabs
     _loadBookings();
   }
 
@@ -52,7 +52,6 @@ class _MyBookingsScreenState extends State<MyBookingsScreen>
                     b['participants_count'] ?? b['traveler_count'] ?? 1,
                 'totalPrice': (b['total_price'] ?? b['amount'] ?? 0).toDouble(),
                 'selectedDate': b['selected_date'] ?? b['created_at'] ?? '',
-                'meetingPoint': b['meeting_point'] ?? '',
                 'location': b['tour']?['location'] ?? '',
               },
             )
@@ -65,108 +64,9 @@ class _MyBookingsScreenState extends State<MyBookingsScreen>
     }
   }
 
-  // ── Cancel Booking ──────────────────────────────────────────────────────────
-  Future<void> _cancelBooking(String bookingId) async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF1E1A16),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Row(
-          children: [
-            Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 22),
-            SizedBox(width: 10),
-            Text(
-              'Cancel Booking',
-              style: TextStyle(color: Colors.white, fontSize: 16),
-            ),
-          ],
-        ),
-        content: const Text(
-          'Are you sure you want to cancel this booking?\nThis action cannot be undone.',
-          style: TextStyle(color: Colors.white54, fontSize: 13, height: 1.5),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text(
-              'Keep It',
-              style: TextStyle(color: Colors.white38),
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red.withOpacity(0.15),
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-                side: BorderSide(color: Colors.red.withOpacity(0.4)),
-              ),
-            ),
-            child: const Text(
-              'Yes, Cancel',
-              style: TextStyle(color: Colors.red, fontSize: 13),
-            ),
-          ),
-        ],
-      ),
-    );
-
-    if (confirm != true) return;
-
-    try {
-      await _bookingService.cancelBooking(int.parse(bookingId));
-      if (!mounted) return;
-      setState(() {
-        final idx = _bookings.indexWhere((b) => b['id'] == bookingId);
-        if (idx != -1) _bookings[idx]['status'] = 'cancelled';
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Row(
-            children: [
-              Icon(Icons.check_circle_outline, color: Colors.white, size: 16),
-              SizedBox(width: 10),
-              Text('Booking cancelled successfully'),
-            ],
-          ),
-          backgroundColor: Colors.green.shade700,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          margin: const EdgeInsets.all(16),
-        ),
-      );
-      // Reload to sync with backend
-      _loadBookings();
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Row(
-            children: [
-              Icon(Icons.error_outline, color: Colors.white, size: 16),
-              SizedBox(width: 10),
-              Text('Failed to cancel booking. Try again.'),
-            ],
-          ),
-          backgroundColor: Colors.red.shade700,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          margin: const EdgeInsets.all(16),
-        ),
-      );
-      debugPrint('Cancel error: $e');
-    }
-  }
-  // ───────────────────────────────────────────────────────────────────────────
-
-  List<Map<String, dynamic>> _filtered(String status) =>
-      _bookings.where((b) => b['status'] == status).toList();
+  List<Map<String, dynamic>> _filtered(String status) => status == 'all'
+      ? _bookings
+      : _bookings.where((b) => b['status'] == status).toList();
 
   @override
   Widget build(BuildContext context) {
@@ -231,10 +131,11 @@ class _MyBookingsScreenState extends State<MyBookingsScreen>
             labelColor: AppColors.gold,
             unselectedLabelColor: Colors.white38,
             labelStyle: const TextStyle(
-              fontSize: 13,
+              fontSize: 12,
               fontWeight: FontWeight.w600,
             ),
             tabs: [
+              Tab(text: 'All (${_bookings.length})'),
               Tab(text: 'Pending (${_filtered('pending').length})'),
               Tab(text: 'Approved (${_filtered('approved').length})'),
               Tab(text: 'Rejected (${_filtered('rejected').length})'),
@@ -248,13 +149,14 @@ class _MyBookingsScreenState extends State<MyBookingsScreen>
             : TabBarView(
                 controller: _tabController,
                 children: [
+                  _buildList(_filtered('all'), 'all'),
                   _buildList(_filtered('pending'), 'pending'),
                   _buildList(_filtered('approved'), 'approved'),
                   _buildList(_filtered('rejected'), 'rejected'),
                 ],
               ),
-      ), // end Scaffold
-    ); // end PopScope
+      ),
+    );
   }
 
   Widget _buildList(List<Map<String, dynamic>> items, String status) {
@@ -264,7 +166,9 @@ class _MyBookingsScreenState extends State<MyBookingsScreen>
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
-              status == 'pending'
+              status == 'all'
+                  ? Icons.receipt_long_outlined
+                  : status == 'pending'
                   ? Icons.hourglass_empty_rounded
                   : status == 'approved'
                   ? Icons.check_circle_outline
@@ -274,7 +178,7 @@ class _MyBookingsScreenState extends State<MyBookingsScreen>
             ),
             const SizedBox(height: 16),
             Text(
-              'No $status bookings',
+              status == 'all' ? 'No bookings yet' : 'No $status bookings',
               style: const TextStyle(color: Colors.white38, fontSize: 15),
             ),
           ],
@@ -301,17 +205,21 @@ class _MyBookingsScreenState extends State<MyBookingsScreen>
     final isPending = status == 'pending';
     final isRejected = status == 'rejected';
 
-    Color statusColor = isPending
+    final statusColor = isPending
         ? Colors.orange
         : isApproved
         ? Colors.green
-        : Colors.red;
+        : isRejected
+        ? Colors.red
+        : Colors.white38;
 
-    String statusLabel = isPending
-        ? 'Pending Approval'
+    final statusLabel = isPending
+        ? 'Pending'
         : isApproved
         ? 'Approved'
-        : 'Rejected';
+        : isRejected
+        ? 'Rejected'
+        : status;
 
     final dateStr = _formatDate(b['selectedDate']);
     final travelers = b['travelers'] ?? 1;
@@ -326,7 +234,9 @@ class _MyBookingsScreenState extends State<MyBookingsScreen>
               ? Colors.green.withOpacity(0.3)
               : isPending
               ? AppColors.gold.withOpacity(0.2)
-              : Colors.red.withOpacity(0.2),
+              : isRejected
+              ? Colors.red.withOpacity(0.2)
+              : Colors.white10,
         ),
       ),
       child: Column(
@@ -336,7 +246,6 @@ class _MyBookingsScreenState extends State<MyBookingsScreen>
             padding: const EdgeInsets.all(16),
             child: Row(
               children: [
-                // Tour image
                 ClipRRect(
                   borderRadius: BorderRadius.circular(12),
                   child: SizedBox(
@@ -436,7 +345,7 @@ class _MyBookingsScreenState extends State<MyBookingsScreen>
           // ── Divider ─────────────────────────
           const Divider(color: Colors.white10, height: 1),
 
-          // ── Details ─────────────────────────
+          // ── Details Row ─────────────────────
           Padding(
             padding: const EdgeInsets.all(16),
             child: Row(
@@ -460,86 +369,78 @@ class _MyBookingsScreenState extends State<MyBookingsScreen>
             ),
           ),
 
-          // ── Cancel Button (Pending only) ─────
-          if (isPending) ...[
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-              child: OutlinedButton(
-                onPressed: () => _cancelBooking(b['id']),
-                style: OutlinedButton.styleFrom(
-                  minimumSize: const Size(double.infinity, 46),
-                  side: BorderSide(color: Colors.red.withOpacity(0.5)),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
+          // ── Buttons ─────────────────────────
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            child: Row(
+              children: [
+                // "View Details" — كل الحالات
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () => Navigator.pushNamed(
+                      context,
+                      '/booking-confirmed',
+                      arguments: {
+                        'bookingId': b['id'],
+                        'tourName': b['tourName'],
+                        'travelers': travelers,
+                        'totalPrice': totalPrice,
+                        'selectedDate': b['selectedDate'],
+                      },
+                    ),
+                    icon: const Icon(Icons.info_outline, size: 15),
+                    label: const Text('View Details'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.white70,
+                      side: BorderSide(color: Colors.white.withOpacity(0.15)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      textStyle: const TextStyle(fontSize: 13),
+                    ),
                   ),
                 ),
-                child: const Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.cancel_outlined, color: Colors.red, size: 16),
-                    SizedBox(width: 8),
-                    Text(
-                      'Cancel Booking',
-                      style: TextStyle(
-                        color: Colors.red,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
+
+                // "Receipt" — Approved فقط
+                if (isApproved) ...[
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => CompletePaymentScreen(
+                            bookingId: int.tryParse(b['id']) ?? 0,
+                            amount: totalPrice,
+                            tourName: b['tourName'],
+                          ),
+                        ),
+                      ),
+                      icon: const Icon(Icons.upload_file_rounded, size: 15),
+                      label: const Text('Receipt'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.gold,
+                        foregroundColor: Colors.black,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        textStyle: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-
-          // ── Upload Receipt Button (Approved only) ──
-          if (isApproved) ...[
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-              child: ElevatedButton(
-                onPressed: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => PaymentReceiptsScreen(
-                      bookingId: int.parse(b['id']),
-                      amount: b['totalPrice'],
-                      tourName: b['tourName'],
-                    ),
                   ),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.gold,
-                  minimumSize: const Size(double.infinity, 46),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  elevation: 0,
-                ),
-                child: const Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.upload_file_rounded,
-                      color: Colors.black,
-                      size: 16,
-                    ),
-                    SizedBox(width: 8),
-                    Text(
-                      'Upload Payment Receipt',
-                      style: TextStyle(
-                        color: Colors.black,
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+                ],
+              ],
             ),
-          ],
+          ),
 
-          // ── Rejected reason note ─────────────
-          if (isRejected) ...[
+          // ── Rejected note ────────────────────
+          if (isRejected)
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
               child: Container(
@@ -567,24 +468,18 @@ class _MyBookingsScreenState extends State<MyBookingsScreen>
                 ),
               ),
             ),
-          ],
         ],
       ),
     );
   }
 
-  Widget _infoChip(IconData icon, String label) {
-    return Row(
-      children: [
-        Icon(icon, color: Colors.white38, size: 13),
-        const SizedBox(width: 5),
-        Text(
-          label,
-          style: const TextStyle(color: Colors.white38, fontSize: 12),
-        ),
-      ],
-    );
-  }
+  Widget _infoChip(IconData icon, String label) => Row(
+    children: [
+      Icon(icon, color: Colors.white38, size: 13),
+      const SizedBox(width: 5),
+      Text(label, style: const TextStyle(color: Colors.white38, fontSize: 12)),
+    ],
+  );
 
   Widget _imgPlaceholder() => Container(
     color: const Color(0xFF2A1F0E),
@@ -619,4 +514,4 @@ class _MyBookingsScreenState extends State<MyBookingsScreen>
       return iso.length > 10 ? iso.substring(0, 10) : iso;
     }
   }
-} // end of _MyBookingsScreenState
+}

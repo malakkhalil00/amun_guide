@@ -80,7 +80,7 @@ class _BookingSummaryScreenState extends State<BookingSummaryScreen> {
       if (mounted) {
         Navigator.pushReplacementNamed(
           context,
-          '/payment-receipts',
+          '/complete-payment',
           arguments: {
             'bookingId': booking['id'] is int
                 ? booking['id']
