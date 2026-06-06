@@ -80,7 +80,7 @@ class _BookingSummaryScreenState extends State<BookingSummaryScreen> {
       if (mounted) {
         Navigator.pushReplacementNamed(
           context,
-          '/complete-payment',
+          '/my-bookings',
           arguments: {
             'bookingId': booking['id'] is int
                 ? booking['id']
@@ -426,7 +426,7 @@ class _BookingSummaryScreenState extends State<BookingSummaryScreen> {
                         const SizedBox(width: 10),
                         Expanded(
                           child: Text(
-                            'After confirming, you\'ll need to upload your payment receipt. Your booking will be reviewed by the guide.',
+                            'After confirming, wait for approval then you can complete your payment from My Bookings.',
                             style: TextStyle(
                               color: Colors.white.withOpacity(0.55),
                               fontSize: 12,

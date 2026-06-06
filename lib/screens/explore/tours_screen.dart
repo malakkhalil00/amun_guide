@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_assets.dart';
 import '../../core/services/tours_service.dart';
-import '../../core/widgets/amun_filter_chip.dart';
 
 class ToursScreen extends StatefulWidget {
   const ToursScreen({super.key});
@@ -31,7 +30,6 @@ class _ToursScreenState extends State<ToursScreen>
   double _maxPrice = 1000;
   String _sortBy = 'rating';
 
-  // ── Animation ──────────────────────────────────
   late AnimationController _listAnimController;
 
   static const _images = [
@@ -52,7 +50,7 @@ class _ToursScreenState extends State<ToursScreen>
     super.initState();
     _listAnimController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 600),
+      duration: const Duration(milliseconds: 700),
     );
     _loadTours();
   }
@@ -63,10 +61,6 @@ class _ToursScreenState extends State<ToursScreen>
     _listAnimController.dispose();
     super.dispose();
   }
-
-  // ══════════════════════════════════════
-  // LOAD — unchanged
-  // ══════════════════════════════════════
 
   Future<void> _loadTours() async {
     setState(() => _isLoading = true);
@@ -86,10 +80,6 @@ class _ToursScreenState extends State<ToursScreen>
       if (mounted) setState(() => _isLoading = false);
     }
   }
-
-  // ══════════════════════════════════════
-  // SEARCH — unchanged
-  // ══════════════════════════════════════
 
   Future<void> _onSearchChanged(String query) async {
     if (query.trim().isEmpty) {
@@ -129,10 +119,6 @@ class _ToursScreenState extends State<ToursScreen>
     }
   }
 
-  // ══════════════════════════════════════
-  // FILTER SHEET — unchanged logic, restyled
-  // ══════════════════════════════════════
-
   void _showFilterSheet() {
     double tempMin = _minPrice;
     double tempMax = _maxPrice;
@@ -140,7 +126,7 @@ class _ToursScreenState extends State<ToursScreen>
 
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF1E1A16),
+      backgroundColor: AppColors.gold,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
@@ -152,7 +138,6 @@ class _ToursScreenState extends State<ToursScreen>
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Handle
               Center(
                 child: Container(
                   width: 40,
@@ -172,8 +157,7 @@ class _ToursScreenState extends State<ToursScreen>
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 18,
-                      fontFamily: 'Playfair Display',
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                   GestureDetector(
@@ -184,24 +168,24 @@ class _ToursScreenState extends State<ToursScreen>
                     }),
                     child: Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 6),
+                        horizontal: 14,
+                        vertical: 6,
+                      ),
                       decoration: BoxDecoration(
                         border: Border.all(
-                            color: AppColors.gold.withOpacity(0.4)),
+                          color: AppColors.gold.withValues(alpha: 0.4),
+                        ),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: const Text(
                         'Reset',
-                        style: TextStyle(
-                            color: AppColors.gold, fontSize: 12),
+                        style: TextStyle(color: AppColors.gold, fontSize: 12),
                       ),
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 28),
-
-              // Price Range
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -215,26 +199,29 @@ class _ToursScreenState extends State<ToursScreen>
                   ),
                   Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 4),
+                      horizontal: 12,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
-                      color: AppColors.gold.withOpacity(0.12),
+                      color: AppColors.gold.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
                       '\$${tempMin.toInt()} — \$${tempMax.toInt()}',
                       style: const TextStyle(
-                          color: AppColors.gold, fontSize: 12),
+                        color: AppColors.gold,
+                        fontSize: 12,
+                      ),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
               SliderTheme(
                 data: SliderThemeData(
                   activeTrackColor: AppColors.gold,
                   inactiveTrackColor: Colors.white10,
                   thumbColor: AppColors.gold,
-                  overlayColor: AppColors.gold.withOpacity(0.1),
+                  overlayColor: AppColors.gold.withValues(alpha: 0.1),
                   trackHeight: 2,
                 ),
                 child: RangeSlider(
@@ -242,16 +229,13 @@ class _ToursScreenState extends State<ToursScreen>
                   min: 0,
                   max: 1000,
                   divisions: 100,
-                  onChanged: (v) =>
-                      setSheet(() {
-                        tempMin = v.start;
-                        tempMax = v.end;
-                      }),
+                  onChanged: (v) => setSheet(() {
+                    tempMin = v.start;
+                    tempMax = v.end;
+                  }),
                 ),
               ),
-              const SizedBox(height: 24),
-
-              // Sort By
+              const SizedBox(height: 20),
               const Text(
                 'Sort By',
                 style: TextStyle(
@@ -263,18 +247,29 @@ class _ToursScreenState extends State<ToursScreen>
               const SizedBox(height: 12),
               Row(
                 children: [
-                  _sortChip('Top Rated', 'rating', tempSort,
-                      (v) => setSheet(() => tempSort = v)),
+                  _sortChip(
+                    'Top Rated',
+                    'rating',
+                    tempSort,
+                    (v) => setSheet(() => tempSort = v),
+                  ),
                   const SizedBox(width: 8),
-                  _sortChip('Price ↑', 'price_asc', tempSort,
-                      (v) => setSheet(() => tempSort = v)),
+                  _sortChip(
+                    'Price ↑',
+                    'price_asc',
+                    tempSort,
+                    (v) => setSheet(() => tempSort = v),
+                  ),
                   const SizedBox(width: 8),
-                  _sortChip('Price ↓', 'price_desc', tempSort,
-                      (v) => setSheet(() => tempSort = v)),
+                  _sortChip(
+                    'Price ↓',
+                    'price_desc',
+                    tempSort,
+                    (v) => setSheet(() => tempSort = v),
+                  ),
                 ],
               ),
               const SizedBox(height: 28),
-
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
@@ -301,7 +296,6 @@ class _ToursScreenState extends State<ToursScreen>
                       color: Colors.black,
                       fontWeight: FontWeight.bold,
                       fontSize: 15,
-                      letterSpacing: 0.5,
                     ),
                   ),
                 ),
@@ -313,22 +307,27 @@ class _ToursScreenState extends State<ToursScreen>
     );
   }
 
-  Widget _sortChip(String label, String value, String current,
-      Function(String) onTap) {
+  Widget _sortChip(
+    String label,
+    String value,
+    String current,
+    Function(String) onTap,
+  ) {
     final isActive = current == value;
     return GestureDetector(
       onTap: () => onTap(value),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: isActive ? AppColors.gold : Colors.white.withOpacity(0.06),
+          color: isActive
+              ? AppColors.gold
+              : Colors.white.withValues(alpha: 0.06),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: isActive
                 ? AppColors.gold
-                : Colors.white.withOpacity(0.1),
+                : Colors.white.withValues(alpha: 0.1),
           ),
         ),
         child: Text(
@@ -336,53 +335,49 @@ class _ToursScreenState extends State<ToursScreen>
           style: TextStyle(
             color: isActive ? Colors.black : Colors.white54,
             fontSize: 12,
-            fontWeight:
-                isActive ? FontWeight.bold : FontWeight.normal,
+            fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
           ),
         ),
       ),
     );
   }
 
-  // ══════════════════════════════════════
-  // APPLY FILTERS — unchanged
-  // ══════════════════════════════════════
-
   void _applyFilters() {
     List<Map<String, dynamic>> results = List.from(_allTours);
     results = results.where((t) {
-      final price = double.tryParse(
-              t['price']?.toString().replaceAll(RegExp(r'[^\d.]'), '') ??
-                  '0') ??
+      final price =
+          double.tryParse(
+            t['price']?.toString().replaceAll(RegExp(r'[^\d.]'), '') ?? '0',
+          ) ??
           0;
       return price >= _minPrice && price <= _maxPrice;
     }).toList();
 
     if (_sortBy == 'price_asc') {
       results.sort((a, b) {
-        final aP = double.tryParse(a['price']
-                    ?.toString()
-                    .replaceAll(RegExp(r'[^\d.]'), '') ??
-                '0') ??
+        final aP =
+            double.tryParse(
+              a['price']?.toString().replaceAll(RegExp(r'[^\d.]'), '') ?? '0',
+            ) ??
             0;
-        final bP = double.tryParse(b['price']
-                    ?.toString()
-                    .replaceAll(RegExp(r'[^\d.]'), '') ??
-                '0') ??
+        final bP =
+            double.tryParse(
+              b['price']?.toString().replaceAll(RegExp(r'[^\d.]'), '') ?? '0',
+            ) ??
             0;
         return aP.compareTo(bP);
       });
     } else if (_sortBy == 'price_desc') {
       results.sort((a, b) {
-        final aP = double.tryParse(a['price']
-                    ?.toString()
-                    .replaceAll(RegExp(r'[^\d.]'), '') ??
-                '0') ??
+        final aP =
+            double.tryParse(
+              a['price']?.toString().replaceAll(RegExp(r'[^\d.]'), '') ?? '0',
+            ) ??
             0;
-        final bP = double.tryParse(b['price']
-                    ?.toString()
-                    .replaceAll(RegExp(r'[^\d.]'), '') ??
-                '0') ??
+        final bP =
+            double.tryParse(
+              b['price']?.toString().replaceAll(RegExp(r'[^\d.]'), '') ?? '0',
+            ) ??
             0;
         return bP.compareTo(aP);
       });
@@ -397,10 +392,6 @@ class _ToursScreenState extends State<ToursScreen>
     setState(() => _tours = results);
     _listAnimController.forward(from: 0);
   }
-
-  // ══════════════════════════════════════
-  // HELPERS — unchanged
-  // ══════════════════════════════════════
 
   List<Map<String, dynamic>> _mapItems(List items) {
     return items.asMap().entries.map<Map<String, dynamic>>((entry) {
@@ -427,11 +418,16 @@ class _ToursScreenState extends State<ToursScreen>
           ? t['days'] as int
           : int.tryParse(t['days'].toString()) ?? 1;
       switch (_activeFilter) {
-        case 1: return d == 1;
-        case 2: return d >= 2 && d <= 3;
-        case 3: return d >= 4 && d <= 7;
-        case 4: return d > 7;
-        default: return true;
+        case 1:
+          return d == 1;
+        case 2:
+          return d >= 2 && d <= 3;
+        case 3:
+          return d >= 4 && d <= 7;
+        case 4:
+          return d > 7;
+        default:
+          return true;
       }
     }).toList();
   }
@@ -443,7 +439,7 @@ class _ToursScreenState extends State<ToursScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF151411),
+      backgroundColor: AppColors.bgCard,
       body: SafeArea(
         child: Column(
           children: [
@@ -452,8 +448,8 @@ class _ToursScreenState extends State<ToursScreen>
               child: _isLoading
                   ? _buildSkeletonList()
                   : _filtered.isEmpty
-                      ? _buildEmpty()
-                      : _buildList(),
+                  ? _buildEmpty()
+                  : _buildList(),
             ),
           ],
         ),
@@ -461,10 +457,12 @@ class _ToursScreenState extends State<ToursScreen>
     );
   }
 
-  // ── Header ─────────────────────────────────────
+  // ── Header ──────────────────────────────────────────────
   Widget _buildHeader() {
+    final hasFilter = _minPrice > 0 || _maxPrice < 1000;
     return Container(
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+      color: AppColors.bgCard,
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -472,230 +470,609 @@ class _ToursScreenState extends State<ToursScreen>
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              const Text(
+                'Discover',
+                style: TextStyle(
+                  color: AppColors.gold,
+                  fontSize: 30,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: -0.5,
+                ),
+              ),
+              Row(
                 children: [
-                  Text(
-                    'Guided Tours',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 26,
-                      fontWeight: FontWeight.w700,
-                      fontFamily: 'Playfair Display',
+                  // Search icon button
+                  GestureDetector(
+                    onTap: () {},
+                    child: Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: AppColors.gold,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.08),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: const Icon(
+                        Icons.search_rounded,
+                        color: AppColors.bgCard,
+                        size: 20,
+                      ),
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      Container(
-                        width: 28,
-                        height: 2,
-                        decoration: BoxDecoration(
-                          color: AppColors.gold,
-                          borderRadius: BorderRadius.circular(1),
-                        ),
+                  const SizedBox(width: 10),
+                  // Filter icon button
+                  GestureDetector(
+                    onTap: _showFilterSheet,
+                    child: Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: hasFilter ? AppColors.gold : AppColors.gold,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.08),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: 6),
-                      Text(
-                        'Expert guides · Unforgettable journeys',
-                        style: TextStyle(
-                          color: AppColors.gold.withOpacity(0.7),
-                          fontSize: 11,
-                          letterSpacing: 0.3,
-                        ),
+                      child: Icon(
+                        Icons.tune_rounded,
+                        color: hasFilter ? Colors.black : AppColors.bgInput,
+                        size: 20,
                       ),
-                    ],
+                    ),
                   ),
                 ],
               ),
-              // Tours count badge
-              if (!_isLoading)
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: AppColors.gold.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                        color: AppColors.gold.withOpacity(0.25)),
-                  ),
-                  child: Text(
-                    '${_filtered.length} Tours',
-                    style: const TextStyle(
-                      color: AppColors.gold,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
             ],
           ),
+
           const SizedBox(height: 20),
 
-          // Search bar
-          Container(
-            decoration: BoxDecoration(
-              color: const Color(0xFF1E1A16),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: _isSearching
-                    ? AppColors.gold.withOpacity(0.5)
-                    : Colors.white.withOpacity(0.08),
-              ),
-              boxShadow: _isSearching
-                  ? [
-                      BoxShadow(
-                        color: AppColors.gold.withOpacity(0.08),
-                        blurRadius: 12,
-                        spreadRadius: 0,
-                      )
-                    ]
-                  : [],
-            ),
-            child: Row(
-              children: [
-                const SizedBox(width: 16),
-                Icon(
-                  Icons.search,
-                  color: _isSearching
-                      ? AppColors.gold
-                      : Colors.white38,
-                  size: 20,
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: TextField(
-                    controller: _searchController,
-                    style: const TextStyle(
-                        color: Colors.white, fontSize: 14),
-                    onChanged: _onSearchChanged,
-                    onTapOutside: (_) =>
-                        FocusScope.of(context).unfocus(),
-                    decoration: const InputDecoration(
-                      hintText: 'Search tours...',
-                      hintStyle: TextStyle(
-                          color: Colors.white38, fontSize: 14),
-                      border: InputBorder.none,
-                      isDense: true,
-                      contentPadding:
-                          EdgeInsets.symmetric(vertical: 14),
-                    ),
-                  ),
-                ),
-                if (_isSearching)
-                  GestureDetector(
-                    onTap: () {
-                      _searchController.clear();
-                      setState(() {
-                        _isSearching = false;
-                        _tours = _allTours;
-                      });
-                    },
-                    child: const Padding(
-                      padding: EdgeInsets.only(right: 8),
-                      child: Icon(Icons.close,
-                          color: Colors.white38, size: 18),
-                    ),
-                  ),
-                GestureDetector(
-                  onTap: _showFilterSheet,
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    margin: const EdgeInsets.all(6),
-                    padding: const EdgeInsets.all(9),
-                    decoration: BoxDecoration(
-                      color: (_minPrice > 0 || _maxPrice < 1000)
-                          ? AppColors.gold
-                          : AppColors.gold.withOpacity(0.12),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Icon(
-                      Icons.tune_rounded,
-                      color: (_minPrice > 0 || _maxPrice < 1000)
-                          ? Colors.black
-                          : AppColors.gold,
-                      size: 18,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 14),
-
-          // Duration filters
+          // Filter chips
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(
               children: List.generate(
                 _filters.length,
                 (i) => Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: AmunFilterChip(
-                    label: _filters[i],
-                    isActive: _activeFilter == i,
+                  padding: const EdgeInsets.only(right: 10),
+                  child: GestureDetector(
                     onTap: () {
                       setState(() => _activeFilter = i);
                       _listAnimController.forward(from: 0);
                     },
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 10,
+                      ),
+                      decoration: BoxDecoration(
+                        color: _activeFilter == i
+                            ? AppColors.gold
+                            : AppColors.bgInput,
+                        borderRadius: BorderRadius.circular(30),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.06),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Text(
+                        _filters[i],
+                        style: TextStyle(
+                          color: _activeFilter == i
+                              ? AppColors.bgInput
+                              : AppColors.gold,
+                          fontSize: 13,
+                          fontWeight: _activeFilter == i
+                              ? FontWeight.bold
+                              : FontWeight.w500,
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               ),
             ),
           ),
-          const SizedBox(height: 16),
+
+          const SizedBox(height: 20),
+
+          // Results count
+          if (!_isLoading)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: Text(
+                '${_filtered.length} Tours Found',
+                style: const TextStyle(
+                  color: Color(0xFF888888),
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
         ],
       ),
     );
   }
 
-  // ── List ──────────────────────────────────────
+  // ── List ─────────────────────────────────────────────────
   Widget _buildList() {
-    return ListView.separated(
-      padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
-      itemCount: _filtered.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 16),
-      itemBuilder: (_, i) {
-        // Stagger animation per card
-        final delay = (i * 0.08).clamp(0.0, 0.7);
-        final animation = CurvedAnimation(
-          parent: _listAnimController,
-          curve: Interval(delay, (delay + 0.4).clamp(0.0, 1.0),
-              curve: Curves.easeOutCubic),
-        );
-        return AnimatedBuilder(
-          animation: animation,
-          builder: (ctx, child) => Opacity(
-            opacity: animation.value,
-            child: Transform.translate(
-              offset: Offset(0, 24 * (1 - animation.value)),
-              child: child,
-            ),
+    // Featured card (أول تور) + بقية الـ tours
+    final featured = _filtered.isNotEmpty ? _filtered.first : null;
+    final rest = _filtered.length > 1
+        ? _filtered.sublist(1)
+        : <Map<String, dynamic>>[];
+
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
+      children: [
+        // Featured large card
+        if (featured != null) ...[
+          _buildFeaturedCard(featured),
+          const SizedBox(height: 28),
+        ],
+
+        // "Top Destination" section
+        if (rest.isNotEmpty) ...[
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Top Destination',
+                style: TextStyle(
+                  color: AppColors.gold,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              GestureDetector(
+                onTap: () {},
+                child: const Text(
+                  'See all',
+                  style: TextStyle(color: Color(0xFF888888), fontSize: 13),
+                ),
+              ),
+            ],
           ),
-          child: _TourListCard(
-            tour: _filtered[i],
-            onTap: () => Navigator.pushNamed(
-              context,
-              '/tour-details',
-              arguments: _filtered[i],
-            ),
-          ),
-        );
-      },
+          const SizedBox(height: 16),
+          ...rest.asMap().entries.map((entry) {
+            final i = entry.key;
+            final tour = entry.value;
+            final delay = (i * 0.08).clamp(0.0, 0.7);
+            final animation = CurvedAnimation(
+              parent: _listAnimController,
+              curve: Interval(
+                delay,
+                (delay + 0.4).clamp(0.0, 1.0),
+                curve: Curves.easeOutCubic,
+              ),
+            );
+            return AnimatedBuilder(
+              animation: animation,
+              builder: (ctx, child) => Opacity(
+                opacity: animation.value,
+                child: Transform.translate(
+                  offset: Offset(0, 20 * (1 - animation.value)),
+                  child: child,
+                ),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 14),
+                child: _buildDestinationCard(tour),
+              ),
+            );
+          }),
+        ],
+      ],
     );
   }
 
-  // ── Skeleton ──────────────────────────────────
+  // ── Featured Card (كبير) ──────────────────────────────────
+  Widget _buildFeaturedCard(Map<String, dynamic> tour) {
+    final img = tour['img']?.toString() ?? '';
+    final isNetwork = tour['isNetwork'] == true;
+
+    return GestureDetector(
+      onTap: () =>
+          Navigator.pushNamed(context, '/tour-details', arguments: tour),
+      child: Container(
+        height: 260,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(28),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.18),
+              blurRadius: 20,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(28),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              // Image
+              isNetwork
+                  ? Image.network(
+                      img,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => _placeholder(),
+                    )
+                  : Image.asset(
+                      img,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => _placeholder(),
+                    ),
+
+              // Gradient overlay
+              Positioned.fill(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.transparent,
+                        Colors.black.withValues(alpha: 0.7),
+                      ],
+                      stops: const [0.4, 1.0],
+                    ),
+                  ),
+                ),
+              ),
+
+              // Duration badge — top left
+              Positioned(
+                top: 16,
+                left: 16,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: Colors.white30),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.schedule_rounded,
+                        color: Colors.white,
+                        size: 12,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${tour['days']}D Tour',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              // Rating — top right
+              Positioned(
+                top: 16,
+                right: 16,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.gold,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.star_rounded,
+                        color: Colors.black,
+                        size: 13,
+                      ),
+                      const SizedBox(width: 3),
+                      Text(
+                        tour['rating']?.toString() ?? '0',
+                        style: const TextStyle(
+                          color: Colors.black,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              // Bottom info
+              Positioned(
+                bottom: 0,
+                left: 0,
+                right: 0,
+                child: Padding(
+                  padding: const EdgeInsets.all(18),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              tour['name']?.toString() ?? '',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                height: 1.2,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 5),
+                            Row(
+                              children: [
+                                const Icon(
+                                  Icons.location_on_rounded,
+                                  color: AppColors.gold,
+                                  size: 13,
+                                ),
+                                const SizedBox(width: 3),
+                                Text(
+                                  tour['loc']?.toString() ?? '',
+                                  style: const TextStyle(
+                                    color: Colors.white70,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            tour['price']?.toString() ?? '',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const Text(
+                            'per person',
+                            style: TextStyle(
+                              color: Colors.white54,
+                              fontSize: 10,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ── Destination Card (صغير) ──────────────────────────────
+  Widget _buildDestinationCard(Map<String, dynamic> tour) {
+    final img = tour['img']?.toString() ?? '';
+    final isNetwork = tour['isNetwork'] == true;
+
+    return GestureDetector(
+      onTap: () =>
+          Navigator.pushNamed(context, '/tour-details', arguments: tour),
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppColors.bgCard,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.07),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            // Image
+            ClipRRect(
+              borderRadius: const BorderRadius.horizontal(
+                left: Radius.circular(20),
+              ),
+              child: SizedBox(
+                width: 90,
+                height: 90,
+                child: isNetwork
+                    ? Image.network(
+                        img,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => _placeholderSmall(),
+                      )
+                    : Image.asset(
+                        img,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => _placeholderSmall(),
+                      ),
+              ),
+            ),
+
+            // Info
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 12,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      tour['name']?.toString() ?? '',
+                      style: const TextStyle(
+                        color: AppColors.gold,
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.location_on_rounded,
+                          color: AppColors.gold,
+                          size: 12,
+                        ),
+                        const SizedBox(width: 3),
+                        Expanded(
+                          child: Text(
+                            tour['loc']?.toString() ?? '',
+                            style: const TextStyle(
+                              color: Color(0xFF888888),
+                              fontSize: 11,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        // Duration
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 3,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.bgInput,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text(
+                            '${tour['days']}D',
+                            style: const TextStyle(
+                              color: Color(0xFF555555),
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                        // Rating
+                        Row(
+                          children: [
+                            const Icon(
+                              Icons.star_rounded,
+                              color: AppColors.gold,
+                              size: 13,
+                            ),
+                            const SizedBox(width: 3),
+                            Text(
+                              tour['rating']?.toString() ?? '0',
+                              style: const TextStyle(
+                                color: AppColors.gold,
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                        // Price
+                        Text(
+                          tour['price']?.toString() ?? '',
+                          style: const TextStyle(
+                            color: AppColors.gold,
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            // Arrow
+            Padding(
+              padding: const EdgeInsets.only(right: 14),
+              child: Container(
+                width: 32,
+                height: 32,
+                decoration: const BoxDecoration(
+                  color: AppColors.gold,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.arrow_forward_rounded,
+                  color: AppColors.bgCard,
+                  size: 15,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── Skeleton ─────────────────────────────────────────────
   Widget _buildSkeletonList() {
-    return ListView.separated(
-      padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
-      itemCount: 4,
-      separatorBuilder: (_, __) => const SizedBox(height: 16),
-      itemBuilder: (_, __) => const _TourCardSkeleton(),
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
+      children: [
+        _SkeletonBox(height: 260, borderRadius: 28),
+        const SizedBox(height: 28),
+        ...List.generate(
+          3,
+          (i) => Padding(
+            padding: const EdgeInsets.only(bottom: 14),
+            child: _SkeletonBox(height: 90, borderRadius: 20),
+          ),
+        ),
+      ],
     );
   }
 
-  // ── Empty state ───────────────────────────────
+  // ── Empty ─────────────────────────────────────────────────
   Widget _buildEmpty() {
     return Center(
       child: Column(
@@ -705,349 +1082,110 @@ class _ToursScreenState extends State<ToursScreen>
             width: 70,
             height: 70,
             decoration: BoxDecoration(
-              color: AppColors.gold.withOpacity(0.08),
+              color: AppColors.gold.withValues(alpha: 0.08),
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.search_off_rounded,
-                color: Colors.white24, size: 32),
+            child: const Icon(
+              Icons.search_off_rounded,
+              color: AppColors.gold,
+              size: 32,
+            ),
           ),
           const SizedBox(height: 16),
-          Text(
-            _isSearching
-                ? 'No results for "${_searchController.text}"'
-                : 'No tours found',
-            style: const TextStyle(
-                color: Colors.white54, fontSize: 14),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Try adjusting your filters',
+          const Text(
+            'No tours found',
             style: TextStyle(
-                color: Colors.white.withOpacity(0.25),
-                fontSize: 12),
+              color: AppColors.gold,
+              fontSize: 15,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'Try adjusting your filters',
+            style: TextStyle(color: Color(0xFF888888), fontSize: 12),
           ),
         ],
       ),
     );
   }
-}
-
-// ══════════════════════════════════════
-// TOUR CARD — redesigned
-// ══════════════════════════════════════
-
-class _TourListCard extends StatelessWidget {
-  final Map<String, dynamic> tour;
-  final VoidCallback onTap;
-  const _TourListCard({required this.tour, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    final isNetwork = tour['isNetwork'] == true;
-    final img = tour['img']?.toString() ?? '';
-    final startDate = tour['start_date']?.toString() ?? '';
-    final isPast = startDate.isNotEmpty &&
-        DateTime.tryParse(startDate)?.isBefore(DateTime.now()) == true;
-
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        decoration: BoxDecoration(
-          color: const Color(0xFF1E1A16),
-          borderRadius: BorderRadius.circular(22),
-          border: Border.all(color: Colors.white.withOpacity(0.07)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.25),
-              blurRadius: 16,
-              offset: const Offset(0, 6),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // ── Image ──────────────────────────────
-            ClipRRect(
-              borderRadius:
-                  const BorderRadius.vertical(top: Radius.circular(22)),
-              child: Stack(
-                children: [
-                  SizedBox(
-                    height: 200,
-                    width: double.infinity,
-                    child: isNetwork
-                        ? Image.network(img,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => _placeholder())
-                        : Image.asset(img,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => _placeholder()),
-                  ),
-                  // Gradient overlay
-                  Positioned.fill(
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            Colors.transparent,
-                            Colors.black.withOpacity(0.55),
-                          ],
-                          stops: const [0.45, 1.0],
-                        ),
-                      ),
-                    ),
-                  ),
-                  // Duration badge — top left
-                  Positioned(
-                    top: 12,
-                    left: 12,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 5),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.55),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                            color: AppColors.gold.withOpacity(0.4)),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.schedule_rounded,
-                              color: AppColors.gold, size: 12),
-                          const SizedBox(width: 4),
-                          Text(
-                            '${tour['days']}D Tour',
-                            style: const TextStyle(
-                              color: AppColors.gold,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  // Price badge — top right
-                  Positioned(
-                    top: 12,
-                    right: 12,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 5),
-                      decoration: BoxDecoration(
-                        color: AppColors.gold,
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        tour['price']?.toString() ?? '',
-                        style: const TextStyle(
-                          color: Colors.black,
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ),
-                  // Past badge
-                  if (isPast)
-                    Positioned(
-                      bottom: 12,
-                      left: 12,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: Colors.red.withOpacity(0.85),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: const Text(
-                          'Unavailable',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ),
-                  // Rating — bottom right on image
-                  Positioned(
-                    bottom: 12,
-                    right: 12,
-                    child: Row(
-                      children: [
-                        const Icon(Icons.star_rounded,
-                            color: AppColors.gold, size: 15),
-                        const SizedBox(width: 3),
-                        Text(
-                          tour['rating']?.toString() ?? '',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // ── Info ───────────────────────────────
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    tour['name']?.toString() ?? '',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 17,
-                      fontWeight: FontWeight.w700,
-                      fontFamily: 'Playfair Display',
-                      height: 1.2,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Icon(Icons.location_on_rounded,
-                          color: AppColors.gold.withOpacity(0.8),
-                          size: 14),
-                      const SizedBox(width: 4),
-                      Text(
-                        tour['loc']?.toString() ?? '',
-                        style: TextStyle(
-                          color: Colors.white.withOpacity(0.5),
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
   Widget _placeholder() => Container(
-        color: const Color(0xFF2A1F0E),
-        child: const Center(
-            child: Icon(Icons.image, color: Colors.white24, size: 40)),
-      );
+    color: const Color(0xFFE0DDD5),
+    child: const Center(
+      child: Icon(Icons.image, color: AppColors.gold, size: 40),
+    ),
+  );
+
+  Widget _placeholderSmall() => Container(
+    color: const Color(0xFFE0DDD5),
+    child: const Center(
+      child: Icon(Icons.image, color: AppColors.gold, size: 24),
+    ),
+  );
 }
 
 // ══════════════════════════════════════
-// SKELETON CARD
+// SKELETON BOX
 // ══════════════════════════════════════
 
-class _TourCardSkeleton extends StatefulWidget {
-  const _TourCardSkeleton();
+class _SkeletonBox extends StatefulWidget {
+  final double height;
+  final double borderRadius;
+  const _SkeletonBox({required this.height, required this.borderRadius});
 
   @override
-  State<_TourCardSkeleton> createState() => _TourCardSkeletonState();
+  State<_SkeletonBox> createState() => _SkeletonBoxState();
 }
 
-class _TourCardSkeletonState extends State<_TourCardSkeleton>
+class _SkeletonBoxState extends State<_SkeletonBox>
     with SingleTickerProviderStateMixin {
-  late AnimationController _shimmerController;
-  late Animation<double> _shimmerAnim;
+  late AnimationController _ctrl;
+  late Animation<double> _anim;
 
   @override
   void initState() {
     super.initState();
-    _shimmerController = AnimationController(
+    _ctrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1400),
     )..repeat();
-    _shimmerAnim = Tween<double>(begin: -1.5, end: 1.5).animate(
-      CurvedAnimation(
-          parent: _shimmerController, curve: Curves.easeInOut),
-    );
+    _anim = Tween<double>(
+      begin: -1.5,
+      end: 1.5,
+    ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut));
   }
 
   @override
   void dispose() {
-    _shimmerController.dispose();
+    _ctrl.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
-      animation: _shimmerAnim,
-      builder: (_, __) {
-        final shimmerGradient = LinearGradient(
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
-          colors: const [
-            Color(0xFF1E1A16),
-            Color(0xFF2A2419),
-            Color(0xFF1E1A16),
-          ],
-          stops: [
-            (_shimmerAnim.value - 0.3).clamp(0.0, 1.0),
-            (_shimmerAnim.value).clamp(0.0, 1.0),
-            (_shimmerAnim.value + 0.3).clamp(0.0, 1.0),
-          ],
-        );
-        return Container(
-          decoration: BoxDecoration(
-            color: const Color(0xFF1E1A16),
-            borderRadius: BorderRadius.circular(22),
-            border:
-                Border.all(color: Colors.white.withOpacity(0.06)),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Image skeleton
-              Container(
-                height: 200,
-                decoration: BoxDecoration(
-                  gradient: shimmerGradient,
-                  borderRadius: const BorderRadius.vertical(
-                      top: Radius.circular(22)),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      height: 18,
-                      width: 200,
-                      decoration: BoxDecoration(
-                        gradient: shimmerGradient,
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    Container(
-                      height: 12,
-                      width: 120,
-                      decoration: BoxDecoration(
-                        gradient: shimmerGradient,
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+      animation: _anim,
+      builder: (_, __) => Container(
+        height: widget.height,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(widget.borderRadius),
+          gradient: LinearGradient(
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
+            colors: const [
+              Color(0xFFE8E5DE),
+              Color(0xFFF0EDE6),
+              Color(0xFFE8E5DE),
+            ],
+            stops: [
+              (_anim.value - 0.3).clamp(0.0, 1.0),
+              (_anim.value).clamp(0.0, 1.0),
+              (_anim.value + 0.3).clamp(0.0, 1.0),
             ],
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 }

@@ -1,10 +1,14 @@
 // 📁 lib/screens/auth/welcome_screen.dart
+// ✅ New UI — Tourist/Guide toggle + Login form in one screen
 
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_assets.dart';
-import '../../core/widgets/ventur_auth_widgets.dart';
+import '../../core/services/auth_service.dart';
+import '../../core/services/dio_client.dart';
 
 class WelcomeScreen extends StatefulWidget {
   const WelcomeScreen({super.key});
@@ -15,272 +19,564 @@ class WelcomeScreen extends StatefulWidget {
 
 class _WelcomeScreenState extends State<WelcomeScreen>
     with SingleTickerProviderStateMixin {
-  int _selectedRole = 0;
-  late AnimationController _controller;
+  // ── Role toggle ────────────────────────────────────
+  int _selectedRole = 0; // 0 = tourist, 1 = guide
+
+  // ── Form controllers ───────────────────────────────
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _nationalIdController = TextEditingController();
+
+  // ── State ──────────────────────────────────────────
+  bool _obscurePassword = true;
+  bool _rememberMe = false;
+  bool _isLoading = false;
+
+  // ── Services ───────────────────────────────────────
+  final _authService = AuthService();
+
+  // ── Animation ─────────────────────────────────────
+  late AnimationController _animController;
   late Animation<double> _fade;
-  late Animation<Offset> _slide;
+  late Animation<Offset> _cardSlide;
 
   @override
   void initState() {
     super.initState();
     SystemChrome.setSystemUIOverlayStyle(
       const SystemUiOverlayStyle(
-        statusBarColor: Color(0xFF0B0B0F),
+        statusBarColor: Colors.transparent,
         statusBarIconBrightness: Brightness.light,
       ),
     );
-    _controller = AnimationController(
+    _animController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 900),
+      duration: const Duration(milliseconds: 800),
     );
-    _fade = CurvedAnimation(parent: _controller, curve: Curves.easeOut);
-    _slide = Tween<Offset>(
-      begin: const Offset(0, 0.3),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
-    _controller.forward();
+    _fade = CurvedAnimation(parent: _animController, curve: Curves.easeOut);
+    _cardSlide = Tween<Offset>(begin: const Offset(0, 0.15), end: Offset.zero)
+        .animate(
+          CurvedAnimation(parent: _animController, curve: Curves.easeOutCubic),
+        );
+    _animController.forward();
+    _loadSavedCredentials();
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _animController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    _nationalIdController.dispose();
     super.dispose();
   }
 
-  String get _selectedRoleStr => _selectedRole == 0 ? 'tourist' : 'guide';
+  // ── Remember Me: load saved credentials ───────────
+  Future<void> _loadSavedCredentials() async {
+    final prefs = await SharedPreferences.getInstance();
+    final remember = prefs.getBool('remember_me') ?? false;
+    if (remember) {
+      final email = prefs.getString('saved_email') ?? '';
+      final password = prefs.getString('saved_password') ?? '';
+      setState(() {
+        _rememberMe = true;
+        _emailController.text = email;
+        _passwordController.text = password;
+      });
+    }
+  }
+
+  // ── Remember Me: save or clear credentials ─────────
+  Future<void> _handleRememberMe() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (_rememberMe) {
+      await prefs.setBool('remember_me', true);
+      await prefs.setString('saved_email', _emailController.text.trim());
+      await prefs.setString('saved_password', _passwordController.text);
+    } else {
+      await prefs.setBool('remember_me', false);
+      await prefs.remove('saved_email');
+      await prefs.remove('saved_password');
+    }
+  }
+
+  bool get _isGuide => _selectedRole == 1;
+  String get _roleStr => _isGuide ? 'guide' : 'tourist';
+
+  // ── Login logic (محمي — نفس الـ login_screen الأصلي) ──
+  Future<void> _login() async {
+    if (_emailController.text.isEmpty ||
+        _passwordController.text.isEmpty ||
+        (_isGuide && _nationalIdController.text.isEmpty)) {
+      _showSnackBar('Please fill in all fields', isError: true);
+      return;
+    }
+    setState(() => _isLoading = true);
+    try {
+      final response = await _authService.login(
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+      );
+      final data = response.data;
+      final token = data['token'] ?? data['data']?['token'] ?? '';
+      final user = data['user'] ?? data['data']?['user'] ?? {};
+
+      if (token.toString().isNotEmpty) {
+        await _handleRememberMe();
+        await DioClient.saveToken(token.toString());
+        final backendRole = user['role']?.toString();
+        final finalRole = (backendRole != null && backendRole.isNotEmpty)
+            ? backendRole
+            : _roleStr;
+        await DioClient.saveUserData(
+          name: user['name'] ?? '',
+          email: user['email'] ?? _emailController.text.trim(),
+          phone: user['phone'] ?? '',
+          address: user['address'] ?? '',
+          profileImage: user['profile_image'] ?? '',
+          role: finalRole,
+          userId: user['id'] ?? 0,
+        );
+        if (mounted) {
+          if (finalRole == 'admin') {
+            Navigator.pushReplacementNamed(context, '/admin');
+          } else if (finalRole == 'guide') {
+            Navigator.pushReplacementNamed(context, '/guide-home');
+          } else {
+            Navigator.pushReplacementNamed(context, '/home');
+          }
+        }
+      } else {
+        _showSnackBar('Login failed. Please try again.', isError: true);
+      }
+    } on DioException catch (e) {
+      String msg = 'Login failed. Please check your credentials.';
+      if (e.response?.data != null && e.response!.data is Map) {
+        final err = e.response!.data as Map;
+        msg = err['message']?.toString() ?? err['error']?.toString() ?? msg;
+      }
+      _showSnackBar(msg, isError: true);
+    } catch (_) {
+      _showSnackBar(
+        'Login failed. Please check your credentials.',
+        isError: true,
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  void _showSnackBar(String msg, {bool isError = false}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(msg),
+        backgroundColor: isError ? AppColors.error : AppColors.gold,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.black,
+      resizeToAvoidBottomInset: true,
       body: Stack(
         children: [
-          // ── Background ───────────────────────────────────────
+          // ── Full-screen background image ─────────────
           Positioned.fill(
             child: Image.asset(
               AppAssets.welcomeBg,
               fit: BoxFit.cover,
               errorBuilder: (_, __, ___) =>
-                  Container(color: const Color.fromARGB(255, 139, 109, 60)),
+                  Container(color: const Color(0xFF3D2B1A)),
             ),
           ),
 
-          // ── Gradient ─────────────────────────────────────────
+          // ── Top gradient ─────────────────────────────
           Positioned.fill(
-            child: Container(
-              decoration: const BoxDecoration(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
+                  end: const Alignment(0, 0.25),
                   colors: [
-                    Color(0x11000000),
-                    Color(0x33000000),
-                    Color(0xcc000000),
+                    Colors.black.withValues(alpha: 0.5),
+                    Colors.transparent,
                   ],
-                  stops: [0.0, 0.4, 1.0],
                 ),
               ),
             ),
           ),
 
-          // ── Animated content ──────────────────────────────────
+          // ── Bottom gradient ───────────────────────────
+          Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.bottomCenter,
+                  end: const Alignment(0, 0.1),
+                  colors: [
+                    Colors.black.withValues(alpha: 0.9),
+                    Colors.transparent,
+                  ],
+                  stops: const [0.0, 0.65],
+                ),
+              ),
+            ),
+          ),
+
+          // ── Content ───────────────────────────────────
           SafeArea(
             child: FadeTransition(
               opacity: _fade,
-              child: SlideTransition(
-                position: _slide,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Logo + app name top-left
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(28, 20, 28, 0),
-                      child: Row(
-                        children: [
-                          Image.asset(
-                            AppAssets.logo,
-                            width: 55,
-                            height: 55,
-                            errorBuilder: (_, __, ___) => const Icon(
-                              Icons.explore,
-                              color: AppColors.gold,
-                              size: 28,
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          const Text(
-                            'AMUN GUIDE',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 3,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    // ── Hero text ──────────────────────────────
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(28, 60, 28, 0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Discover Egypt\nLike Never Before',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 46,
-                              fontWeight: FontWeight.w700,
-                              height: 1.1,
-                              letterSpacing: -1,
-                            ),
-                          ),
-                          const SizedBox(height: 15),
-                          // Dot indicators (like reference)
-                          Row(
-                            children: List.generate(
-                              3,
-                              (i) => Container(
-                                margin: const EdgeInsets.only(right: 6),
-                                width: i == 0 ? 20 : 8,
-                                height: 4,
-                                decoration: BoxDecoration(
-                                  color: i == 0 ? Colors.white : Colors.white38,
-                                  borderRadius: BorderRadius.circular(2),
-                                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // ── Logo + app name ─────────────────────
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 40,
+                          height: 40,
+                          // decoration: BoxDecoration(
+                          //   color: Colors.white.withValues(alpha: 0.15),
+                          //   borderRadius: BorderRadius.circular(0),
+                          //   border: Border.all(
+                          //     color: Colors.white.withValues(alpha: 0.2),
+                          //   ),
+                          // ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(10),
+                            child: Image.asset(
+                              AppAssets.logo,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => const Icon(
+                                Icons.explore_rounded,
+                                color: Colors.white,
+                                size: 22,
                               ),
                             ),
                           ),
-                        ],
-                      ),
-                    ),
-
-                    const Spacer(),
-
-                    // ── Curved white card ────────────────────────
-                    Container(
-                      decoration: const BoxDecoration(
-                        color: Color(0xFF111315),
-                        borderRadius: BorderRadius.vertical(
-                          top: Radius.circular(40),
                         ),
-                      ),
-                      padding: const EdgeInsets.fromLTRB(28, 30, 28, 36),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Card heading
-                          const Text(
-                            'Choose Your Role',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 28,
-                              fontWeight: FontWeight.w600,
-                              letterSpacing: -0.3,
-                            ),
+                        const SizedBox(width: 10),
+                        const Text(
+                          'AMUN GUIDE',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 3,
                           ),
-                          const SizedBox(height: 1),
-                          const Text(
-                            'Choose how you want to explore the world with Amun Guide',
-                            style: TextStyle(
-                              color: Color(0xFF94A3B8),
-                              fontSize: 13,
-                            ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // ── Hero heading ────────────────────────
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(28, 40, 28, 0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Discover Egypt\nLike Never Before',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 34,
+                            fontWeight: FontWeight.w800,
+                            height: 1.15,
+                            letterSpacing: -0.8,
                           ),
-
-                          const SizedBox(height: 22),
-
-                          // ── Tourist card ──────────────────────
-                          _VenturRoleCard(
-                            emoji: '🧳',
-                            title: 'Tourist',
-                            desc: 'Explore destinations and book experiences',
-                            isSelected: _selectedRole == 0,
-                            dark: true,
-                            onTap: () => setState(() => _selectedRole = 0),
-                          ),
-
-                          const SizedBox(height: 14),
-
-                          // ── Guide card ────────────────────────
-                          _VenturRoleCard(
-                            emoji: '🗺️',
-                            title: 'Guide',
-                            desc: 'Create tours and manage travelers',
-                            isSelected: _selectedRole == 1,
-                            dark: true,
-                            onTap: () => setState(() => _selectedRole = 1),
-                          ),
-
-                          const SizedBox(height: 26),
-
-                          // ── Continue button ───────────────────
-                          // ── Continue button - استبدل VenturPrimaryBtn بده
-                          SizedBox(
-                            width: double.infinity,
-                            height: 56,
-                            child: ElevatedButton(
-                              onPressed: () => Navigator.pushNamed(
-                                context,
-                                '/login',
-                                arguments: {'role': _selectedRoleStr},
+                        ),
+                        const SizedBox(height: 14),
+                        Row(
+                          children: List.generate(
+                            3,
+                            (i) => Container(
+                              margin: const EdgeInsets.only(right: 6),
+                              width: i == 0 ? 24 : 8,
+                              height: 4,
+                              decoration: BoxDecoration(
+                                color: i == 0
+                                    ? Colors.white
+                                    : Colors.white.withValues(alpha: 0.3),
+                                borderRadius: BorderRadius.circular(2),
                               ),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.gold,
-                                foregroundColor: Colors.black,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(16),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 20),
+                  // ── Bottom card ─────────────────────────
+                  Expanded(
+                    child: SlideTransition(
+                      position: _cardSlide,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: const Color.fromARGB(146, 42, 36, 31),
+                          borderRadius: const BorderRadius.vertical(
+                            top: Radius.circular(36),
+                          ),
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.06),
+                          ),
+                        ),
+                        child: SingleChildScrollView(
+                          padding: EdgeInsets.fromLTRB(
+                            24,
+                            24,
+                            24,
+                            MediaQuery.of(context).viewInsets.bottom + 32,
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // ── Toggle Tourist / Guide ──────
+                              Container(
+                                decoration: BoxDecoration(
+                                  color: const Color.fromRGBO(
+                                    255,
+                                    255,
+                                    255,
+                                    1,
+                                  ).withValues(alpha: 0.07),
+                                  borderRadius: BorderRadius.circular(14),
                                 ),
-                                elevation: 0,
-                              ),
-                              child: Text(
-                                'Continue as ${_selectedRole == 0 ? 'Tourist' : 'Guide'}',
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w700,
-                                  letterSpacing: 0.5,
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 20),
-
-                          Center(
-                            child: GestureDetector(
-                              onTap: () => Navigator.pushNamed(
-                                context,
-                                '/register',
-                                arguments: {'role': _selectedRoleStr},
-                              ),
-                              child: RichText(
-                                text: const TextSpan(
+                                padding: const EdgeInsets.all(4),
+                                child: Row(
                                   children: [
-                                    TextSpan(
-                                      text: "Don't have an account?  ",
-                                      style: TextStyle(
-                                        color: Color(0xFF94A3B8),
-                                        fontSize: 13,
-                                      ),
+                                    _RoleTab(
+                                      label: 'Tourist',
+                                      isSelected: _selectedRole == 0,
+                                      onTap: () =>
+                                          setState(() => _selectedRole = 0),
                                     ),
-                                    TextSpan(
-                                      text: 'Sign Up',
-                                      style: TextStyle(
-                                        color: AppColors.gold,
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.bold,
-                                      ),
+                                    _RoleTab(
+                                      label: 'Guide',
+                                      isSelected: _selectedRole == 1,
+                                      onTap: () =>
+                                          setState(() => _selectedRole = 1),
                                     ),
                                   ],
                                 ),
                               ),
-                            ),
+
+                              const SizedBox(height: 22),
+
+                              // ── Email ───────────────────────
+                              _FieldLabel('Email Address'),
+                              const SizedBox(height: 8),
+                              _InputField(
+                                controller: _emailController,
+                                hint: 'user@example.com',
+                                icon: Icons.email_outlined,
+                                keyboardType: TextInputType.emailAddress,
+                              ),
+
+                              const SizedBox(height: 16),
+
+                              // ── Password ────────────────────
+                              _FieldLabel('Password'),
+                              const SizedBox(height: 8),
+                              _InputField(
+                                controller: _passwordController,
+                                hint: '••••••••',
+                                icon: Icons.lock_outline,
+                                obscure: _obscurePassword,
+                                suffixIcon: IconButton(
+                                  icon: Icon(
+                                    _obscurePassword
+                                        ? Icons.visibility_off_outlined
+                                        : Icons.visibility_outlined,
+                                    color: Colors.white38,
+                                    size: 20,
+                                  ),
+                                  onPressed: () => setState(
+                                    () => _obscurePassword = !_obscurePassword,
+                                  ),
+                                ),
+                              ),
+
+                              // ── National ID — Guide only ────
+                              AnimatedSize(
+                                duration: const Duration(milliseconds: 300),
+                                curve: Curves.easeInOut,
+                                child: _isGuide
+                                    ? Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          const SizedBox(height: 16),
+                                          _FieldLabel('National ID'),
+                                          const SizedBox(height: 8),
+                                          _InputField(
+                                            controller: _nationalIdController,
+                                            hint: 'Enter your national ID',
+                                            icon: Icons.badge_outlined,
+                                            keyboardType: TextInputType.number,
+                                          ),
+                                        ],
+                                      )
+                                    : const SizedBox.shrink(),
+                              ),
+
+                              const SizedBox(height: 14),
+
+                              // ── Remember Me + Forgot Password ─
+                              Row(
+                                children: [
+                                  // Remember Me
+                                  GestureDetector(
+                                    onTap: () => setState(
+                                      () => _rememberMe = !_rememberMe,
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        AnimatedContainer(
+                                          duration: const Duration(
+                                            milliseconds: 200,
+                                          ),
+                                          width: 20,
+                                          height: 20,
+                                          decoration: BoxDecoration(
+                                            color: _rememberMe
+                                                ? AppColors.gold
+                                                : Colors.transparent,
+                                            borderRadius: BorderRadius.circular(
+                                              5,
+                                            ),
+                                            border: Border.all(
+                                              color: _rememberMe
+                                                  ? AppColors.gold
+                                                  : Colors.white24,
+                                              width: 1.5,
+                                            ),
+                                          ),
+                                          child: _rememberMe
+                                              ? const Icon(
+                                                  Icons.check,
+                                                  color: Colors.black,
+                                                  size: 13,
+                                                )
+                                              : null,
+                                        ),
+                                        const SizedBox(width: 8),
+                                        const Text(
+                                          'Remember me',
+                                          style: TextStyle(
+                                            color: Colors.white54,
+                                            fontSize: 13,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+
+                                  const Spacer(),
+                                  // Forgot Password
+                                  GestureDetector(
+                                    onTap: () => Navigator.pushNamed(
+                                      context,
+                                      '/forgot-password',
+                                    ),
+                                    child: const Text(
+                                      'Forgot Password?',
+                                      style: TextStyle(
+                                        color: AppColors.gold,
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+
+                              const SizedBox(height: 22),
+
+                              // ── Sign In button ──────────────
+                              SizedBox(
+                                width: double.infinity,
+                                height: 54,
+                                child: ElevatedButton(
+                                  onPressed: _isLoading ? null : _login,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppColors.gold,
+                                    foregroundColor: Colors.black,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(16),
+                                    ),
+                                    elevation: 0,
+                                  ),
+                                  child: _isLoading
+                                      ? const SizedBox(
+                                          width: 22,
+                                          height: 22,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2.5,
+                                            color: Colors.black,
+                                          ),
+                                        )
+                                      : Text(
+                                          'Sign In as ${_isGuide ? 'Guide' : 'Tourist'}',
+                                          style: const TextStyle(
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.w700,
+                                            letterSpacing: 0.3,
+                                          ),
+                                        ),
+                                ),
+                              ),
+
+                              const SizedBox(height: 20),
+
+                              // ── Sign Up link ────────────────
+                              Center(
+                                child: GestureDetector(
+                                  onTap: () => Navigator.pushNamed(
+                                    context,
+                                    '/register',
+                                    arguments: {'role': _roleStr},
+                                  ),
+                                  child: RichText(
+                                    text: TextSpan(
+                                      children: [
+                                        TextSpan(
+                                          text: "Don't have an account?  ",
+                                          style: TextStyle(
+                                            color: Colors.white.withValues(
+                                              alpha: 0.4,
+                                            ),
+                                            fontSize: 13,
+                                          ),
+                                        ),
+                                        const TextSpan(
+                                          text: 'Sign Up',
+                                          style: TextStyle(
+                                            color: AppColors.gold,
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
-                        ],
+                        ),
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ),
@@ -290,89 +586,110 @@ class _WelcomeScreenState extends State<WelcomeScreen>
   }
 }
 
-// ── Ventur Role Card ──────────────────────────────────────────────────────────
-class _VenturRoleCard extends StatelessWidget {
-  final String emoji;
-  final String title;
-  final String desc;
+// ── Role Tab ──────────────────────────────────────────────────────────────────
+class _RoleTab extends StatelessWidget {
+  final String label;
   final bool isSelected;
-  final bool dark;
   final VoidCallback onTap;
 
-  const _VenturRoleCard({
-    required this.emoji,
-    required this.title,
-    required this.desc,
+  const _RoleTab({
+    required this.label,
     required this.isSelected,
-    required this.dark,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    final bg = dark
-        ? const Color.fromARGB(255, 15, 16, 20)
-        : const Color(0xFFF8FAFC);
-    final border = isSelected ? AppColors.gold : Colors.transparent;
-    final titleColor = dark ? Colors.white : const Color(0xFF0F172A);
-    final descColor = dark ? Colors.white54 : const Color(0xFF64748B);
-
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 220),
-        padding: EdgeInsets.symmetric(horizontal: 18, vertical: 20),
-        decoration: BoxDecoration(
-          color: bg,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: border, width: isSelected ? 1.5 : 0),
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 220),
+          padding: const EdgeInsets.symmetric(vertical: 11),
+          decoration: BoxDecoration(
+            color: isSelected ? AppColors.gold : Colors.transparent,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Text(
+            label,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: isSelected
+                  ? Colors.black
+                  : Colors.white.withValues(alpha: 0.4),
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
         ),
-        child: Row(
-          children: [
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: isSelected
-                    ? AppColors.gold.withValues(alpha: 0.15)
-                    : Colors.white10,
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Center(
-                child: Text(emoji, style: const TextStyle(fontSize: 22)),
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                      color: titleColor,
-                      fontSize: 15,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 3),
-                  Text(
-                    desc,
-                    style: TextStyle(
-                      color: descColor,
-                      fontSize: 12,
-                      height: 1.4,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Icon(
-              Icons.chevron_right_rounded,
-              color: dark ? Colors.white30 : const Color(0xFFCBD5E1),
-              size: 22,
-            ),
-          ],
+      ),
+    );
+  }
+}
+
+// ── Field Label ───────────────────────────────────────────────────────────────
+class _FieldLabel extends StatelessWidget {
+  final String text;
+  const _FieldLabel(this.text);
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      style: const TextStyle(
+        color: Colors.white70,
+        fontSize: 13,
+        fontWeight: FontWeight.w600,
+      ),
+    );
+  }
+}
+
+// ── Input Field ───────────────────────────────────────────────────────────────
+class _InputField extends StatelessWidget {
+  final TextEditingController controller;
+  final String hint;
+  final IconData icon;
+  final bool obscure;
+  final TextInputType keyboardType;
+  final Widget? suffixIcon;
+
+  const _InputField({
+    required this.controller,
+    required this.hint,
+    required this.icon,
+    this.obscure = false,
+    this.keyboardType = TextInputType.text,
+    this.suffixIcon,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.bgInput,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+      ),
+      child: TextField(
+        controller: controller,
+        obscureText: obscure,
+        keyboardType: keyboardType,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+        ),
+        decoration: InputDecoration(
+          hintText: hint,
+          hintStyle: const TextStyle(color: Colors.white38, fontSize: 14),
+          prefixIcon: Icon(icon, color: AppColors.gold, size: 20),
+          suffixIcon: suffixIcon,
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 18,
+            vertical: 16,
+          ),
         ),
       ),
     );

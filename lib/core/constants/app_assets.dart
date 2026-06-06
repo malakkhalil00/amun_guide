@@ -10,7 +10,7 @@ class AppAssets {
   static const String amunAvatar = '${_i}amun_avatar.png';
 
   // Auth / Onboarding
-  static const String welcomeBg = '${_i}hotel1.jpg';
+  static const String welcomeBg = '${_i}welcome3.jpg';
   static const String onboarding1 = '${_i}onboarding1.png';
   static const String onboarding2 = '${_i}onboarding2.png';
   static const String onboarding3 = '${_i}onboarding3.png';

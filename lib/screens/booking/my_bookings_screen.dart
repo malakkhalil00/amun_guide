@@ -403,38 +403,42 @@ class _MyBookingsScreenState extends State<MyBookingsScreen>
                 ),
 
                 // "Receipt" — Approved فقط
-                if (isApproved) ...[
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => CompletePaymentScreen(
-                            bookingId: int.tryParse(b['id']) ?? 0,
-                            amount: totalPrice,
-                            tourName: b['tourName'],
-                          ),
-                        ),
-                      ),
-                      icon: const Icon(Icons.upload_file_rounded, size: 15),
-                      label: const Text('Receipt'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.gold,
-                        foregroundColor: Colors.black,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                        textStyle: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
+                // "Checkout" — Pending و Approved
+if (isPending || isApproved) ...[
+  const SizedBox(width: 10),
+  Expanded(
+    child: ElevatedButton.icon(
+      onPressed: () => Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => CompletePaymentScreen(
+            bookingId: int.tryParse(b['id']) ?? 0,
+            amount: totalPrice,
+            tourName: b['tourName'],
+            guideName: b['guideName'],
+            selectedDate: b['selectedDate'],
+            travelers: travelers,
+          ),
+        ),
+      ),
+      icon: const Icon(Icons.payment_rounded, size: 15),
+      label: const Text('Checkout'),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: AppColors.gold,
+        foregroundColor: Colors.black,
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        textStyle: const TextStyle(
+          fontSize: 13,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    ),
+  ),
+],
               ],
             ),
           ),

@@ -1,6 +1,7 @@
 // 📁 lib/screens/explore/tour_details_screen.dart
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/services/tours_service.dart';
 import '../../core/constants/app_assets.dart';
@@ -17,6 +18,7 @@ class _TourDetailsScreenState extends State<TourDetailsScreen>
     with TickerProviderStateMixin {
   bool _isSaved = false;
   bool _isLoading = true;
+  bool _isDescExpanded = false;
   final _toursService = ToursService();
 
   String _title = '';
@@ -31,16 +33,39 @@ class _TourDetailsScreenState extends State<TourDetailsScreen>
   Map<String, dynamic> _guide = {};
   List<Map<String, dynamic>> _places = [];
 
+  // Gallery thumbnails — بنبني من الـ places أو fallback
+  List<String> _galleryImages = [];
+
   late AnimationController _contentController;
   late Animation<double> _contentFade;
-  late Animation<double> _contentSlide;
+  late Animation<Offset> _contentSlide;
 
   late AnimationController _saveController;
   late Animation<double> _saveScale;
 
+  static const _fallbackImages = [
+    AppAssets.pyramids,
+    AppAssets.karnak,
+    AppAssets.abuSimbel,
+    AppAssets.alexandria,
+    AppAssets.philae,
+    AppAssets.siwa,
+    AppAssets.nileSunset,
+    AppAssets.luxorNight,
+    AppAssets.valley,
+    AppAssets.museum,
+  ];
+
   @override
   void initState() {
     super.initState();
+
+    SystemChrome.setSystemUIOverlayStyle(
+      const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.light,
+      ),
+    );
 
     _contentController = AnimationController(
       vsync: this,
@@ -50,9 +75,13 @@ class _TourDetailsScreenState extends State<TourDetailsScreen>
       parent: _contentController,
       curve: Curves.easeOut,
     );
-    _contentSlide = Tween<double>(begin: 30, end: 0).animate(
-      CurvedAnimation(parent: _contentController, curve: Curves.easeOutCubic),
-    );
+    _contentSlide =
+        Tween<Offset>(begin: const Offset(0, 0.08), end: Offset.zero).animate(
+          CurvedAnimation(
+            parent: _contentController,
+            curve: Curves.easeOutCubic,
+          ),
+        );
 
     _saveController = AnimationController(
       vsync: this,
@@ -65,9 +94,17 @@ class _TourDetailsScreenState extends State<TourDetailsScreen>
     WidgetsBinding.instance.addPostFrameCallback((_) => _loadData());
   }
 
+  @override
+  void dispose() {
+    _contentController.dispose();
+    _saveController.dispose();
+    super.dispose();
+  }
+
   Future<void> _loadData() async {
     final args = ModalRoute.of(context)?.settings.arguments;
     int? tourId;
+
     if (args is Map<String, dynamic>) {
       setState(() {
         _tourId = args['id'] ?? 0;
@@ -103,18 +140,6 @@ class _TourDetailsScreenState extends State<TourDetailsScreen>
               _guide = Map<String, dynamic>.from(tour['guide']);
             }
             if (tour['places'] != null && tour['places'] is List) {
-              final placeImages = [
-                AppAssets.pyramids,
-                AppAssets.karnak,
-                AppAssets.abuSimbel,
-                AppAssets.alexandria,
-                AppAssets.philae,
-                AppAssets.siwa,
-                AppAssets.nileSunset,
-                AppAssets.luxorNight,
-                AppAssets.valley,
-                AppAssets.museum,
-              ];
               final placesList = tour['places'] as List;
               _places = placesList.asMap().entries.map<Map<String, dynamic>>((
                 entry,
@@ -123,7 +148,7 @@ class _TourDetailsScreenState extends State<TourDetailsScreen>
                 final p = entry.value;
                 return {
                   'id': p['id'],
-                  'img': placeImages[i % placeImages.length],
+                  'img': _fallbackImages[i % _fallbackImages.length],
                   'name': p['title'] ?? p['name'] ?? '',
                   'desc': p['description'] ?? '',
                   'loc': p['location'] ?? 'Egypt',
@@ -142,13 +167,17 @@ class _TourDetailsScreenState extends State<TourDetailsScreen>
       }
     }
 
+    // بناء الـ gallery من الـ places أو fallback images
+    _galleryImages = _places.isNotEmpty
+        ? _places.take(4).map((p) => p['img']?.toString() ?? '').toList()
+        : _fallbackImages.take(4).toList();
+
     if (mounted) {
       setState(() => _isLoading = false);
       _contentController.forward();
     }
   }
 
-  // ── الجديد: بدل _joinTour القديم ──────────────
   void _openBookingSummary() {
     Navigator.pushNamed(
       context,
@@ -169,176 +198,250 @@ class _TourDetailsScreenState extends State<TourDetailsScreen>
     );
   }
 
-  @override
-  void dispose() {
-    _contentController.dispose();
-    _saveController.dispose();
-    super.dispose();
-  }
-
-  Widget _buildImage(
+  Widget _buildImg(
     String src, {
     double? width,
     double? height,
     BoxFit fit = BoxFit.cover,
   }) {
-    final isNetwork = src.startsWith('http');
-    final errorWidget = Container(
-      color: const Color(0xFF2A1F0E),
-      child: const Icon(Icons.image, color: Colors.white24, size: 40),
-    );
-    return isNetwork
+    if (src.isEmpty) return _imgError(width: width, height: height);
+    final isNet = src.startsWith('http');
+    final err = _imgError(width: width, height: height);
+    return isNet
         ? Image.network(
             src,
             fit: fit,
             width: width,
             height: height,
-            errorBuilder: (_, __, ___) => errorWidget,
+            errorBuilder: (_, __, ___) => err,
           )
         : Image.asset(
             src,
             fit: fit,
             width: width,
             height: height,
-            errorBuilder: (_, __, ___) => errorWidget,
+            errorBuilder: (_, __, ___) => err,
           );
   }
+
+  Widget _imgError({double? width, double? height}) => Container(
+    width: width,
+    height: height,
+    color: const Color(0xFFDDD8CE),
+    child: const Icon(Icons.image_rounded, color: AppColors.gold, size: 28),
+  );
 
   @override
   Widget build(BuildContext context) {
     if (_isLoading) return _buildSkeleton();
 
-    final ratingNum = double.tryParse(_rating) ?? 0;
-    final fullStars = ratingNum.floor();
-    final hasHalf = (ratingNum - fullStars) >= 0.3;
+    final screenSize = MediaQuery.of(context).size;
+    final bottomPad = MediaQuery.of(context).padding.bottom;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF151411),
+      backgroundColor: AppColors.bgCard,
       body: Stack(
         children: [
+          // ── Scrollable content ──────────────────────────
           CustomScrollView(
             slivers: [
-              // ── Hero ─────────────────────────────
-              SliverAppBar(
-                expandedHeight: 300,
-                pinned: true,
-                backgroundColor: const Color(0xFF151411),
-                elevation: 0,
-                leading: GestureDetector(
-                  onTap: () => Navigator.pop(context),
-                  child: Container(
-                    margin: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.5),
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white.withOpacity(0.1)),
-                    ),
-                    child: const Icon(
-                      Icons.arrow_back_ios_new,
-                      color: Colors.white,
-                      size: 18,
-                    ),
-                  ),
-                ),
-                actions: [
-                  GestureDetector(
-                    onTap: () {
-                      _saveController.forward().then(
-                        (_) => _saveController.reverse(),
-                      );
-                      setState(() => _isSaved = !_isSaved);
-                    },
-                    child: AnimatedBuilder(
-                      animation: _saveScale,
-                      builder: (_, child) => Transform.scale(
-                        scale: _saveScale.value,
-                        child: child,
-                      ),
-                      child: Container(
-                        margin: const EdgeInsets.only(
-                          right: 12,
-                          top: 8,
-                          bottom: 8,
-                        ),
-                        padding: const EdgeInsets.all(9),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.5),
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: Colors.white.withOpacity(0.1),
-                          ),
-                        ),
-                        child: Icon(
-                          _isSaved
-                              ? Icons.favorite_rounded
-                              : Icons.favorite_border_rounded,
-                          color: _isSaved ? Colors.red : Colors.white,
-                          size: 20,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-                flexibleSpace: FlexibleSpaceBar(
-                  titlePadding: EdgeInsets.zero,
-                  background: Stack(
-                    fit: StackFit.expand,
+              // ── Hero image + gallery ────────────────────
+              SliverToBoxAdapter(
+                child: SizedBox(
+                  height: screenSize.height * 0.55,
+                  child: Stack(
                     children: [
-                      _image.isNotEmpty
-                          ? _buildImage(_image)
-                          : Image.asset(
-                              'assets/images/pyramids.jpg',
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) =>
-                                  Container(color: const Color(0xFF2A1F0E)),
-                            ),
                       Positioned.fill(
-                        child: DecoratedBox(
+                        child: ClipRRect(
+                          borderRadius: const BorderRadius.only(
+                            bottomLeft: Radius.circular(40),
+                            bottomRight: Radius.circular(40),
+                          ),
+                          child: _buildImg(_image),
+                        ),
+                      ),
+                      // Gradient overlay على الصورة الرئيسية
+                      Positioned(
+                        bottom: 0,
+                        left: 0,
+                        right: 0,
+                        child: Container(
+                          height: 200,
                           decoration: BoxDecoration(
+                            borderRadius: const BorderRadius.only(
+                              bottomRight: Radius.circular(90),
+                            ),
                             gradient: LinearGradient(
                               begin: Alignment.topCenter,
                               end: Alignment.bottomCenter,
                               colors: [
-                                Colors.black.withOpacity(0.25),
                                 Colors.transparent,
-                                const Color(0xFF151411),
+                                Colors.black.withValues(alpha: 0.55),
                               ],
-                              stops: const [0.0, 0.5, 1.0],
                             ),
                           ),
                         ),
                       ),
+                      // Gallery thumbnails — فوق بعض على يمين الصورة
                       Positioned(
-                        bottom: 16,
-                        left: 16,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 7,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppColors.gold,
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(
-                                Icons.verified_rounded,
-                                color: Colors.black,
-                                size: 14,
-                              ),
-                              const SizedBox(width: 5),
-                              Text(
-                                '$_durationDays Day Tour',
-                                style: const TextStyle(
-                                  color: Colors.black,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
+                        top: 0,
+                        right: 12,
+                        bottom: 0,
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const SizedBox(height: 60),
+                            ..._galleryImages.asMap().entries.map((e) {
+                              final isSelected = e.key == 0;
+                              return Container(
+                                margin: const EdgeInsets.only(bottom: 10),
+                                width: 70,
+                                height: 70,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: isSelected
+                                      ? Border.all(
+                                          color: AppColors.gold,
+                                          width: 2.5,
+                                        )
+                                      : null,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withValues(
+                                        alpha: 0.25,
+                                      ),
+                                      blurRadius: 10,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ],
                                 ),
-                              ),
-                            ],
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(18),
+                                  child: _buildImg(e.value),
+                                ),
+                              );
+                            }),
+                          ],
+                        ),
+                      ),
+
+                      // Back button
+                      Positioned(
+                        top: MediaQuery.of(context).padding.top + 10,
+                        left: 16,
+                        child: GestureDetector(
+                          onTap: () => Navigator.pop(context),
+                          child: Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              color: AppColors.bgCard,
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.1),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: const Icon(
+                              Icons.arrow_back_ios_new_rounded,
+                              color: AppColors.gold,
+                              size: 16,
+                            ),
                           ),
+                        ),
+                      ),
+
+                      // Heart button
+                      Positioned(
+                        top: MediaQuery.of(context).padding.top + 10,
+                        right: 16,
+                        child: AnimatedBuilder(
+                          animation: _saveScale,
+                          builder: (_, child) => Transform.scale(
+                            scale: _saveScale.value,
+                            child: child,
+                          ),
+                          child: GestureDetector(
+                            onTap: () {
+                              _saveController.forward().then(
+                                (_) => _saveController.reverse(),
+                              );
+                              setState(() => _isSaved = !_isSaved);
+                            },
+                            child: Container(
+                              width: 40,
+                              height: 40,
+                              decoration: BoxDecoration(
+                                color: AppColors.bgInput,
+                                shape: BoxShape.circle,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.1),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: Icon(
+                                _isSaved
+                                    ? Icons.favorite_rounded
+                                    : Icons.favorite_border_rounded,
+                                color: _isSaved
+                                    ? Colors.redAccent
+                                    : AppColors.gold,
+                                size: 18,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      // Title + location على الصورة (أسفل يسار)
+                      Positioned(
+                        bottom: 20,
+                        left: 20,
+                        right: 88,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              _title,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
+                                height: 1.2,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 5),
+                            Row(
+                              children: [
+                                const Icon(
+                                  Icons.location_on_rounded,
+                                  color: AppColors.gold,
+                                  size: 13,
+                                ),
+                                const SizedBox(width: 3),
+                                Expanded(
+                                  child: Text(
+                                    _location,
+                                    style: const TextStyle(
+                                      color: Colors.white70,
+                                      fontSize: 12,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
                         ),
                       ),
                     ],
@@ -346,145 +449,47 @@ class _TourDetailsScreenState extends State<TourDetailsScreen>
                 ),
               ),
 
-              // ── Content ──────────────────────────
-              SliverPadding(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 130),
-                sliver: SliverList(
-                  delegate: SliverChildListDelegate([
-                    AnimatedBuilder(
-                      animation: _contentFade,
-                      builder: (_, child) => Opacity(
-                        opacity: _contentFade.value,
-                        child: Transform.translate(
-                          offset: Offset(0, _contentSlide.value),
-                          child: child,
-                        ),
-                      ),
+              // ── Bottom content card ─────────────────────
+              SliverToBoxAdapter(
+                child: FadeTransition(
+                  opacity: _contentFade,
+                  child: SlideTransition(
+                    position: _contentSlide,
+                    child: Container(
+                      margin: const EdgeInsets.only(top: 0),
+                      padding: EdgeInsets.fromLTRB(20, 24, 20, bottomPad + 100),
+                      decoration: const BoxDecoration(color: AppColors.bgCard),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const SizedBox(height: 4),
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  _title,
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 26,
-                                    fontWeight: FontWeight.w700,
-                                    fontFamily: 'Playfair Display',
-                                    height: 1.2,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.end,
-                                children: [
-                                  Text(
-                                    _price,
-                                    style: const TextStyle(
-                                      color: AppColors.gold,
-                                      fontSize: 26,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  Text(
-                                    'per person',
-                                    style: TextStyle(
-                                      color: Colors.white.withOpacity(0.35),
-                                      fontSize: 11,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 10),
-                          Row(
-                            children: [
-                              Icon(
-                                Icons.location_on_rounded,
-                                color: AppColors.gold.withOpacity(0.8),
-                                size: 14,
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                _location,
-                                style: TextStyle(
-                                  color: Colors.white.withOpacity(0.5),
-                                  fontSize: 13,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 16),
-                          Row(
-                            children: [
-                              Row(
-                                children: List.generate(
-                                  5,
-                                  (i) => Icon(
-                                    i < fullStars
-                                        ? Icons.star_rounded
-                                        : (i == fullStars && hasHalf
-                                              ? Icons.star_half_rounded
-                                              : Icons.star_border_rounded),
-                                    color: AppColors.gold,
-                                    size: 18,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                _rating,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const SizedBox(width: 6),
-                              Text(
-                                _reviewsCount > 0
-                                    ? '($_reviewsCount reviews)'
-                                    : '(No reviews yet)',
-                                style: TextStyle(
-                                  color: Colors.white.withOpacity(0.35),
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ],
-                          ),
+                          // ── Stats row ───────────────────
+                          _buildStatsRow(),
+
                           const SizedBox(height: 24),
                           _buildDivider(),
+                          const SizedBox(height: 24),
+
+                          // ── Guide card ──────────────────
                           if (_guide.isNotEmpty) ...[
-                            const SizedBox(height: 24),
                             _buildSectionTitle('Your Guide'),
                             const SizedBox(height: 14),
                             _buildGuideCard(),
                             const SizedBox(height: 24),
                             _buildDivider(),
-                          ],
-                          if (_description.isNotEmpty) ...[
                             const SizedBox(height: 24),
-                            _buildSectionTitle('About the Tour'),
-                            const SizedBox(height: 12),
-                            Text(
-                              _description,
-                              style: TextStyle(
-                                color: Colors.white.withOpacity(0.55),
-                                fontSize: 14,
-                                height: 1.75,
-                              ),
-                            ),
-                            const SizedBox(height: 24),
-                            _buildDivider(),
                           ],
+
+                          // ── Description ─────────────────
+                          _buildSectionTitle('Description'),
+                          const SizedBox(height: 12),
+                          _buildDescription(),
+
+                          const SizedBox(height: 24),
+                          _buildDivider(),
+                          const SizedBox(height: 24),
+
+                          // ── Places ───────────────────────
                           if (_places.isNotEmpty) ...[
-                            const SizedBox(height: 24),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
@@ -505,25 +510,22 @@ class _TourDetailsScreenState extends State<TourDetailsScreen>
                                       vertical: 6,
                                     ),
                                     decoration: BoxDecoration(
-                                      color: AppColors.gold.withOpacity(0.1),
+                                      color: AppColors.gold,
                                       borderRadius: BorderRadius.circular(20),
-                                      border: Border.all(
-                                        color: AppColors.gold.withOpacity(0.3),
-                                      ),
                                     ),
                                     child: const Row(
                                       children: [
                                         Icon(
                                           Icons.map_rounded,
-                                          color: AppColors.gold,
-                                          size: 13,
+                                          color: Colors.white,
+                                          size: 12,
                                         ),
                                         SizedBox(width: 4),
                                         Text(
                                           'View Map',
                                           style: TextStyle(
-                                            color: AppColors.gold,
-                                            fontSize: 12,
+                                            color: Colors.white,
+                                            fontSize: 11,
                                             fontWeight: FontWeight.w600,
                                           ),
                                         ),
@@ -539,84 +541,110 @@ class _TourDetailsScreenState extends State<TourDetailsScreen>
                         ],
                       ),
                     ),
-                  ]),
+                  ),
                 ),
               ),
             ],
           ),
 
-          // ── Bottom Bar ──────────────────────────
+          // ── Bottom Bar (Price + Join) ────────────────────
           Positioned(
             bottom: 0,
             left: 0,
             right: 0,
             child: Container(
-              padding: EdgeInsets.fromLTRB(
-                20,
-                16,
-                20,
-                MediaQuery.of(context).padding.bottom + 16,
-              ),
+              padding: EdgeInsets.fromLTRB(20, 16, 20, bottomPad + 16),
               decoration: BoxDecoration(
-                color: const Color(0xFF151411).withOpacity(0.97),
+                color: AppColors.bgCard,
                 border: Border(
-                  top: BorderSide(color: Colors.white.withOpacity(0.07)),
+                  top: BorderSide(color: Colors.black.withValues(alpha: 0.06)),
                 ),
               ),
               child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  // Upload Receipt
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () =>
-                          Navigator.pushNamed(context, '/my-bookings'),
-                      style: OutlinedButton.styleFrom(
-                        side: BorderSide(
-                          color: AppColors.gold.withOpacity(0.45),
-                        ),
-                        padding: const EdgeInsets.symmetric(vertical: 15),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                      ),
-                      icon: const Icon(
-                        Icons.upload_file_rounded,
-                        color: AppColors.gold,
-                        size: 18,
-                      ),
-                      label: const Text(
-                        'Upload Receipt',
+                  // Price
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text(
+                        'Total Price',
                         style: TextStyle(
+                          color: Color(0xFF888888),
+                          fontSize: 12,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        _price.isNotEmpty ? _price : '\$0',
+                        style: const TextStyle(
                           color: AppColors.gold,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 13,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  // Join Tour — بيفتح Booking Summary
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: _openBookingSummary,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.gold,
-                        padding: const EdgeInsets.symmetric(vertical: 15),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        elevation: 0,
-                      ),
-                      child: const Text(
-                        'Join Tour',
-                        style: TextStyle(
-                          color: Colors.black,
+                          fontSize: 26,
                           fontWeight: FontWeight.bold,
-                          fontSize: 15,
-                          letterSpacing: 0.3,
                         ),
                       ),
-                    ),
+                    ],
+                  ),
+
+                  // Join button — دايري كبير زي الصورة
+                  Row(
+                    children: [
+                      // Upload receipt
+                      GestureDetector(
+                        onTap: () =>
+                            Navigator.pushNamed(context, '/my-bookings'),
+                        child: Container(
+                          width: 48,
+                          height: 48,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: Colors.black.withValues(alpha: 0.1),
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.06),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: const Icon(
+                            Icons.upload_file_rounded,
+                            color: AppColors.gold,
+                            size: 20,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      // Join tour — big circle button
+                      GestureDetector(
+                        onTap: _openBookingSummary,
+                        child: Container(
+                          width: 60,
+                          height: 60,
+                          decoration: BoxDecoration(
+                            color: AppColors.gold,
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.gold,
+                                blurRadius: 16,
+                                offset: const Offset(0, 6),
+                              ),
+                            ],
+                          ),
+                          child: const Icon(
+                            Icons.arrow_forward_rounded,
+                            color: Colors.white,
+                            size: 26,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -627,80 +655,139 @@ class _TourDetailsScreenState extends State<TourDetailsScreen>
     );
   }
 
-  Widget _buildSectionTitle(String title) => Text(
-    title,
-    style: const TextStyle(
-      color: Colors.white,
-      fontSize: 18,
-      fontWeight: FontWeight.w700,
-      fontFamily: 'Playfair Display',
-    ),
-  );
+  // ── Stats row (Distance · Temp · Rating) ─────────────────
+  Widget _buildStatsRow() {
+    return Row(
+      children: [
+        _statItem('Duration', '${_durationDays}D', Icons.schedule_rounded),
+        _statDivider(),
+        _statItem('Reviews', '$_reviewsCount', Icons.people_outline_rounded),
+        _statDivider(),
+        _statItem(
+          'Rating',
+          _rating.isNotEmpty ? _rating : '—',
+          Icons.star_rounded,
+        ),
+      ],
+    );
+  }
 
-  Widget _buildDivider() => Container(
-    height: 1,
-    decoration: BoxDecoration(
-      gradient: LinearGradient(
-        colors: [
-          Colors.transparent,
-          Colors.white.withOpacity(0.08),
-          Colors.transparent,
+  Widget _statItem(String label, String value, IconData icon) {
+    return Expanded(
+      child: Column(
+        children: [
+          Icon(icon, color: AppColors.gold, size: 20),
+          const SizedBox(height: 6),
+          Text(
+            value,
+            style: const TextStyle(
+              color: AppColors.gold,
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            style: const TextStyle(color: Color(0xFF888888), fontSize: 11),
+          ),
         ],
       ),
-    ),
+    );
+  }
+
+  Widget _statDivider() => Container(
+    width: 1,
+    height: 40,
+    color: Colors.black.withValues(alpha: 0.08),
   );
 
+  // ── Description ──────────────────────────────────────────
+  Widget _buildDescription() {
+    final text = _description.isNotEmpty
+        ? _description
+        : 'No description available for this tour.';
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        AnimatedCrossFade(
+          duration: const Duration(milliseconds: 250),
+          crossFadeState: _isDescExpanded
+              ? CrossFadeState.showSecond
+              : CrossFadeState.showFirst,
+          firstChild: Text(
+            text,
+            style: const TextStyle(
+              color: Color(0xFF555555),
+              fontSize: 14,
+              height: 1.75,
+            ),
+            maxLines: 4,
+            overflow: TextOverflow.ellipsis,
+          ),
+          secondChild: Text(
+            text,
+            style: const TextStyle(
+              color: Color(0xFF555555),
+              fontSize: 14,
+              height: 1.75,
+            ),
+          ),
+        ),
+        const SizedBox(height: 6),
+        GestureDetector(
+          onTap: () => setState(() => _isDescExpanded = !_isDescExpanded),
+          child: Text(
+            _isDescExpanded ? 'Show less' : 'Read More',
+            style: const TextStyle(
+              color: AppColors.gold,
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ── Guide card ────────────────────────────────────────────
   Widget _buildGuideCard() {
-    final guideName = _guide['name'] ?? 'Certified Egyptologist';
+    final guideName = _guide['name'] ?? 'Certified Guide';
     final guideImage = _guide['profile_image'] ?? _guide['image'] ?? '';
     final guideRating = (_guide['rating'] ?? 5.0).toString();
-    final guideBio =
-        _guide['bio'] ??
-        _guide['description'] ??
-        'Expert in New Kingdom history...';
+    final guideBio = _guide['bio'] ?? _guide['description'] ?? 'Expert guide';
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E1A16),
+        color: AppColors.bgInput,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.gold.withOpacity(0.2)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Row(
         children: [
+          // Avatar
           Container(
-            width: 58,
-            height: 58,
+            width: 56,
+            height: 56,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              border: Border.all(color: AppColors.gold, width: 1.5),
+              border: Border.all(color: AppColors.gold, width: 2),
             ),
             child: ClipOval(
               child: guideImage.isNotEmpty && guideImage.startsWith('http')
                   ? Image.network(
                       guideImage,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => Container(
-                        color: const Color(0xFF2A1F0E),
-                        child: const Icon(
-                          Icons.person,
-                          color: AppColors.gold,
-                          size: 28,
-                        ),
-                      ),
+                      errorBuilder: (_, __, ___) => _guideAvatarFallback(),
                     )
-                  : Image.asset(
-                      'assets/images/guide_ahmed.jpg',
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => Container(
-                        color: const Color(0xFF2A1F0E),
-                        child: const Icon(
-                          Icons.person,
-                          color: AppColors.gold,
-                          size: 28,
-                        ),
-                      ),
-                    ),
+                  : _guideAvatarFallback(),
             ),
           ),
           const SizedBox(width: 14),
@@ -711,16 +798,16 @@ class _TourDetailsScreenState extends State<TourDetailsScreen>
                 Text(
                   guideName,
                   style: const TextStyle(
-                    color: Colors.white,
+                    color: AppColors.gold,
                     fontSize: 15,
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
                 const SizedBox(height: 3),
                 Text(
                   guideBio,
-                  style: TextStyle(
-                    color: Colors.white.withOpacity(0.45),
+                  style: const TextStyle(
+                    color: Color(0xFF888888),
                     fontSize: 12,
                     height: 1.4,
                   ),
@@ -754,13 +841,12 @@ class _TourDetailsScreenState extends State<TourDetailsScreen>
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: AppColors.gold.withOpacity(0.12),
+              color: AppColors.gold,
               shape: BoxShape.circle,
-              border: Border.all(color: AppColors.gold.withOpacity(0.3)),
             ),
             child: const Icon(
               Icons.chat_bubble_outline_rounded,
-              color: AppColors.gold,
+              color: Colors.white,
               size: 18,
             ),
           ),
@@ -769,9 +855,16 @@ class _TourDetailsScreenState extends State<TourDetailsScreen>
     );
   }
 
+  Widget _guideAvatarFallback() => Container(
+    color: AppColors.bgInput,
+    child: const Icon(Icons.person_rounded, color: AppColors.gold, size: 28),
+  );
+
+  // ── Place item ────────────────────────────────────────────
   Widget _buildPlaceItem(Map<String, dynamic> place) {
     final img = place['img']?.toString() ?? '';
-    final isNetwork = img.startsWith('http');
+    final isNet = img.startsWith('http');
+
     return GestureDetector(
       onTap: () =>
           Navigator.pushNamed(context, '/place-details', arguments: place),
@@ -779,18 +872,24 @@ class _TourDetailsScreenState extends State<TourDetailsScreen>
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: const Color(0xFF1E1A16),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.white.withOpacity(0.07)),
+          color: AppColors.bgInput,
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 3),
+            ),
+          ],
         ),
         child: Row(
           children: [
             ClipRRect(
               borderRadius: BorderRadius.circular(12),
               child: SizedBox(
-                width: 70,
-                height: 70,
-                child: isNetwork
+                width: 68,
+                height: 68,
+                child: isNet
                     ? Image.network(
                         img,
                         fit: BoxFit.cover,
@@ -811,16 +910,16 @@ class _TourDetailsScreenState extends State<TourDetailsScreen>
                   Text(
                     place['name']?.toString() ?? '',
                     style: const TextStyle(
-                      color: Colors.white,
+                      color: AppColors.gold,
                       fontSize: 14,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     place['desc']?.toString() ?? '',
-                    style: TextStyle(
-                      color: Colors.white.withOpacity(0.4),
+                    style: const TextStyle(
+                      color: Color(0xFF888888),
                       fontSize: 12,
                       height: 1.4,
                     ),
@@ -832,16 +931,16 @@ class _TourDetailsScreenState extends State<TourDetailsScreen>
             ),
             const SizedBox(width: 8),
             Container(
-              width: 30,
-              height: 30,
-              decoration: BoxDecoration(
-                color: AppColors.gold.withOpacity(0.1),
+              width: 32,
+              height: 32,
+              decoration: const BoxDecoration(
+                color: AppColors.gold,
                 shape: BoxShape.circle,
               ),
               child: const Icon(
-                Icons.arrow_forward_ios_rounded,
-                color: AppColors.gold,
-                size: 13,
+                Icons.arrow_forward_rounded,
+                color: Colors.white,
+                size: 15,
               ),
             ),
           ],
@@ -850,34 +949,42 @@ class _TourDetailsScreenState extends State<TourDetailsScreen>
     );
   }
 
-  Widget _imgError() => Container(
-    color: const Color(0xFF2A1F0E),
-    child: const Icon(Icons.image, color: Colors.white24, size: 28),
+  // ── Helpers ───────────────────────────────────────────────
+  Widget _buildSectionTitle(String title) => Text(
+    title,
+    style: const TextStyle(
+      color: AppColors.gold,
+      fontSize: 18,
+      fontWeight: FontWeight.bold,
+    ),
   );
 
+  Widget _buildDivider() =>
+      Container(height: 1, color: Colors.black.withValues(alpha: 0.06));
+
+  // ── Skeleton ──────────────────────────────────────────────
   Widget _buildSkeleton() {
     return Scaffold(
-      backgroundColor: const Color(0xFF151411),
+      backgroundColor: AppColors.bgCard,
       body: Column(
         children: [
-          _ShimmerBox(height: 300, borderRadius: 0),
-          const SizedBox(height: 20),
+          _SkeletonBox(
+            height: MediaQuery.of(context).size.height * 0.55,
+            borderRadius: 0,
+          ),
+          const SizedBox(height: 24),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _ShimmerBox(height: 28, width: 240, borderRadius: 8),
+                _SkeletonBox(height: 24, borderRadius: 8),
                 const SizedBox(height: 12),
-                _ShimmerBox(height: 16, width: 160, borderRadius: 6),
+                _SkeletonBox(height: 16, borderRadius: 6),
                 const SizedBox(height: 20),
-                _ShimmerBox(
-                  height: 14,
-                  width: double.infinity,
-                  borderRadius: 6,
-                ),
+                _SkeletonBox(height: 14, borderRadius: 6),
                 const SizedBox(height: 8),
-                _ShimmerBox(height: 14, width: 280, borderRadius: 6),
+                _SkeletonBox(height: 14, borderRadius: 6),
               ],
             ),
           ),
@@ -887,21 +994,20 @@ class _TourDetailsScreenState extends State<TourDetailsScreen>
   }
 }
 
-class _ShimmerBox extends StatefulWidget {
+// ══════════════════════════════════════
+// SKELETON BOX
+// ══════════════════════════════════════
+
+class _SkeletonBox extends StatefulWidget {
   final double height;
-  final double? width;
   final double borderRadius;
-  const _ShimmerBox({
-    required this.height,
-    this.width,
-    required this.borderRadius,
-  });
+  const _SkeletonBox({required this.height, required this.borderRadius});
 
   @override
-  State<_ShimmerBox> createState() => _ShimmerBoxState();
+  State<_SkeletonBox> createState() => _SkeletonBoxState();
 }
 
-class _ShimmerBoxState extends State<_ShimmerBox>
+class _SkeletonBoxState extends State<_SkeletonBox>
     with SingleTickerProviderStateMixin {
   late AnimationController _ctrl;
   late Animation<double> _anim;
@@ -931,16 +1037,15 @@ class _ShimmerBoxState extends State<_ShimmerBox>
       animation: _anim,
       builder: (_, __) => Container(
         height: widget.height,
-        width: widget.width,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(widget.borderRadius),
           gradient: LinearGradient(
             begin: Alignment.centerLeft,
             end: Alignment.centerRight,
             colors: const [
-              Color(0xFF1E1A16),
-              Color(0xFF2A2419),
-              Color(0xFF1E1A16),
+              Color(0xFFE8E5DE),
+              Color(0xFFF0EDE6),
+              Color(0xFFE8E5DE),
             ],
             stops: [
               (_anim.value - 0.3).clamp(0.0, 1.0),

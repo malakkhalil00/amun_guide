@@ -46,17 +46,21 @@ class _ExploreScreenState extends State<ExploreScreen> {
     super.dispose();
   }
 
-  // ✅ كل الـ logic محمي
   Future<void> _loadPlaces() async {
+    if (!mounted) return;
     setState(() => _isLoading = true);
     try {
       final response = await _placesService.getAllPlaces();
       final data = response.data;
       final List items = data['data'] ?? data ?? [];
-      setState(() => _places = _mapItems(items));
+      if (mounted) {
+        setState(() {
+          _places = _mapItems(items);
+          _isLoading = false;
+        });
+      }
     } catch (e) {
       debugPrint('Error loading places: $e');
-    } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
@@ -64,7 +68,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
   Future<void> _onSearchChanged(String query) async {
     if (query.trim().isEmpty) {
       setState(() => _isSearching = false);
-      _loadPlaces();
+      await _loadPlaces();
       return;
     }
     setState(() {
@@ -75,28 +79,26 @@ class _ExploreScreenState extends State<ExploreScreen> {
       final response = await _placesService.searchPlaces(query);
       final data = response.data;
       final List items = data['data'] ?? data ?? [];
-      if (mounted) setState(() => _places = _mapItems(items));
+      if (mounted) {
+        setState(() {
+          _places = _mapItems(items);
+          _isLoading = false;
+        });
+      }
     } catch (e) {
       debugPrint('Search error: $e');
-      final q = query.toLowerCase();
-      setState(() {
-        _places = _places
-            .where(
-              (p) =>
-                  (p['name'] ?? '').toLowerCase().contains(q) ||
-                  (p['loc'] ?? '').toLowerCase().contains(q) ||
-                  (p['cat'] ?? '').toLowerCase().contains(q),
-            )
-            .toList();
-      });
-    } finally {
       if (mounted) setState(() => _isLoading = false);
+      // مش بنعمل retry — بس بنوقف الـ loading
     }
   }
 
   Future<void> _onFilterChanged(int index) async {
     setState(() => _activeFilter = index);
-    if (index == 0) await _loadPlaces();
+    if (index == 0) {
+      await _loadPlaces();
+    } else {
+      setState(() {});
+    }
   }
 
   void _showFilterSheet() {
@@ -432,10 +434,18 @@ class _ExploreScreenState extends State<ExploreScreen> {
     }).toList();
   }
 
-  List<Map<String, dynamic>> get _filtered => _activeFilter == 0
-      ? _places
-      : _places.where((p) => p['cat'] == _filters[_activeFilter]).toList();
-
+  List<Map<String, dynamic>> get _filtered {
+    if (_activeFilter == 0) return _places;
+    final filterName = _filters[_activeFilter].toLowerCase();
+    return _places.where((p) {
+      final cat = (p['cat'] ?? '').toString().toLowerCase();
+      final name = (p['name'] ?? '').toString().toLowerCase();
+      final loc = (p['loc'] ?? '').toString().toLowerCase();
+      return cat.contains(filterName) ||
+          name.contains(filterName) ||
+          loc.contains(filterName);
+    }).toList();
+  }
   // ══════════════════════════════════════
   // BUILD
   // ══════════════════════════════════════
@@ -459,141 +469,165 @@ class _ExploreScreenState extends State<ExploreScreen> {
   }
 
   Widget _buildHeader() {
-    final hasFilter = _minPrice > 0 || _maxPrice < 500;
+    final hasFilter = _minPrice > 0 || _maxPrice < 1000;
     return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.bgCard,
-        border: Border(bottom: BorderSide(color: AppColors.border)),
-      ),
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 14),
+      color: AppColors.bgCard,
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Title row
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              const Text(
+                'Explore',
+                style: TextStyle(
+                  color: AppColors.gold,
+                  fontSize: 30,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: -0.5,
+                ),
+              ),
+              Row(
                 children: [
-                  // const Text(
-                  //   '',
-                  //   style: TextStyle(
-                  //     color: Colors.white54,
-                  //     fontSize: 13,
-                  //     letterSpacing: 0.3,
-                  //   ),
-                  // ),
-                  // const SizedBox(height: 2),
-                  const Text(
-                    ' Explore Egypt',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 0.3,
+                  // Search icon button
+                  GestureDetector(
+                    onTap: () {},
+                    child: Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: AppColors.gold,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.08),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: const Icon(
+                        Icons.search_rounded,
+                        color: Color(0xFF1A1A2E),
+                        size: 20,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  // Filter icon button
+                  GestureDetector(
+                    onTap: _showFilterSheet,
+                    child: Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: hasFilter ? AppColors.gold : Colors.white,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.08),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Icon(
+                        Icons.tune_rounded,
+                        color: hasFilter ? Colors.black : AppColors.gold,
+                        size: 20,
+                      ),
                     ),
                   ),
                 ],
               ),
-              // Grid/List toggle
-              Container(
-                decoration: BoxDecoration(
-                  color: AppColors.bgInput,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.border),
-                ),
-                child: Row(
-                  children: [
-                    _toggleBtn(Icons.grid_view_rounded, true),
-                    _toggleBtn(Icons.view_list_rounded, false),
-                  ],
-                ),
-              ),
             ],
           ),
 
-          const SizedBox(height: 14),
+          const SizedBox(height: 10),
 
-          // Search bar
-          Container(
-            decoration: BoxDecoration(
-              color: AppColors.bgInput,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: _isSearching ? AppColors.gold : AppColors.border,
-                width: _isSearching ? 1.5 : 1,
-              ),
-            ),
-            child: Row(
-              children: [
-                const SizedBox(width: 16),
-                const Icon(
-                  Icons.search_rounded,
-                  color: AppColors.gold,
-                  size: 20,
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: TextField(
-                    controller: _searchController,
-                    style: const TextStyle(color: Colors.white, fontSize: 14),
-                    onChanged: _onSearchChanged,
-                    onTapOutside: (_) => FocusScope.of(context).unfocus(),
-                    decoration: const InputDecoration(
-                      hintText: 'Search places...',
-                      hintStyle: TextStyle(color: Colors.white38, fontSize: 14),
-                      border: InputBorder.none,
-                      isDense: true,
-                      contentPadding: EdgeInsets.symmetric(vertical: 14),
-                    ),
-                  ),
-                ),
-                if (_isSearching)
-                  GestureDetector(
-                    onTap: () {
-                      _searchController.clear();
-                      setState(() => _isSearching = false);
-                      _loadPlaces();
-                    },
-                    child: Container(
-                      margin: const EdgeInsets.only(right: 8),
-                      width: 28,
-                      height: 28,
-                      decoration: BoxDecoration(
-                        color: AppColors.bgCard,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: AppColors.border),
-                      ),
-                      child: const Icon(
-                        Icons.close_rounded,
-                        color: Colors.white54,
-                        size: 14,
-                      ),
-                    ),
-                  ),
-                // Filter button
-                GestureDetector(
-                  onTap: _showFilterSheet,
-                  child: Container(
-                    margin: const EdgeInsets.only(right: 8),
-                    padding: const EdgeInsets.all(9),
-                    decoration: BoxDecoration(
-                      color: hasFilter ? AppColors.gold : AppColors.goldDim,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppColors.borderGold),
-                    ),
-                    child: Icon(
-                      Icons.tune_rounded,
-                      color: hasFilter ? Colors.black : AppColors.gold,
-                      size: 18,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 12),
+          // // Search bar
+          // Row(
+          //   children: [
+          //     Expanded(
+          //       child: Container(
+          //         height: 52,
+          //         decoration: BoxDecoration(
+          //           color: Colors.white,
+          //           borderRadius: BorderRadius.circular(30),
+          //           boxShadow: [
+          //             BoxShadow(
+          //               color: Colors.black.withValues(alpha: 0.08),
+          //               blurRadius: 12,
+          //               offset: const Offset(0, 4),
+          //             ),
+          //           ],
+          //         ),
+          //         child: Row(
+          //           children: [
+          //             const SizedBox(width: 20),
+          //             Expanded(
+          //               child: TextField(
+          //                 controller: _searchController,
+          //                 style: const TextStyle(
+          //                   color: Color(0xFF1A1A2E),
+          //                   fontSize: 14,
+          //                 ),
+          //                 onChanged: _onSearchChanged,
+          //                 onTapOutside: (_) => FocusScope.of(context).unfocus(),
+          //                 decoration: const InputDecoration(
+          //                   hintText: 'Search places...',
+          //                   hintStyle: TextStyle(
+          //                     color: Color(0xFFAAAAAA),
+          //                     fontSize: 14,
+          //                   ),
+          //                   border: InputBorder.none,
+          //                   isDense: true,
+          //                   contentPadding: EdgeInsets.symmetric(vertical: 16),
+          //                 ),
+          //               ),
+          //             ),
+          //             if (_isSearching)
+          //               GestureDetector(
+          //                 onTap: () {
+          //                   _searchController.clear();
+          //                   setState(() => _isSearching = false);
+          //                   _loadPlaces();
+          //                 },
+          //                 child: const Padding(
+          //                   padding: EdgeInsets.only(right: 8),
+          //                   child: Icon(
+          //                     Icons.close_rounded,
+          //                     color: Color(0xFFAAAAAA),
+          //                     size: 18,
+          //                   ),
+          //                 ),
+          //               ),
+          //             GestureDetector(
+          //               onTap: () {},
+          //               child: Container(
+          //                 width: 44,
+          //                 height: 44,
+          //                 margin: const EdgeInsets.all(4),
+          //                 decoration: const BoxDecoration(
+          //                   color: Color(0xFF1A1A2E),
+          //                   shape: BoxShape.circle,
+          //                 ),
+          //                 child: const Icon(
+          //                   Icons.search_rounded,
+          //                   color: Colors.white,
+          //                   size: 20,
+          //                 ),
+          //               ),
+          //             ),
+          //           ],
+          //         ),
+          //       ),
+          //     ),
+          //   ],
+          // ),
+          const SizedBox(height: 20),
 
           // Filter chips
           SingleChildScrollView(
@@ -602,41 +636,62 @@ class _ExploreScreenState extends State<ExploreScreen> {
               children: List.generate(
                 _filters.length,
                 (i) => Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: AmunFilterChip(
-                    label: _filters[i],
-                    isActive: _activeFilter == i,
+                  padding: const EdgeInsets.only(right: 10),
+                  child: GestureDetector(
                     onTap: () => _onFilterChanged(i),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 10,
+                      ),
+                      decoration: BoxDecoration(
+                        color: _activeFilter == i
+                            ? AppColors.gold
+                            : AppColors.bgInput,
+                        borderRadius: BorderRadius.circular(30),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.06),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Text(
+                        _filters[i],
+                        style: TextStyle(
+                          color: _activeFilter == i
+                              ? AppColors.bgInput
+                              : AppColors.gold,
+                          fontSize: 13,
+                          fontWeight: _activeFilter == i
+                              ? FontWeight.bold
+                              : FontWeight.w500,
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               ),
             ),
           ),
 
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
 
           // Results count
-          Row(
-            children: [
-              Container(
-                width: 3,
-                height: 16,
-                decoration: BoxDecoration(
-                  color: AppColors.gold,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                _isLoading ? 'Loading...' : '${_filtered.length} Places Found',
+          if (!_isLoading)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Text(
+                '${_filtered.length} Places Found',
                 style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF888888),
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
-            ],
-          ),
+            ),
         ],
       ),
     );
@@ -644,24 +699,12 @@ class _ExploreScreenState extends State<ExploreScreen> {
 
   Widget _buildBody(BuildContext context) {
     if (_isLoading) {
-      return _isGrid
-          ? GridView.builder(
-              padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                crossAxisSpacing: 14,
-                mainAxisSpacing: 14,
-                childAspectRatio: 0.78,
-              ),
-              itemCount: 6,
-              itemBuilder: (_, __) => const SkeletonPlaceCard(),
-            )
-          : ListView.separated(
-              padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-              itemCount: 4,
-              separatorBuilder: (_, __) => const SizedBox(height: 12),
-              itemBuilder: (_, __) => const SkeletonListCard(),
-            );
+      return ListView.separated(
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+        itemCount: 4,
+        separatorBuilder: (_, __) => const SizedBox(height: 16),
+        itemBuilder: (_, __) => const SkeletonListCard(),
+      );
     }
 
     if (_filtered.isEmpty) {
@@ -690,68 +733,24 @@ class _ExploreScreenState extends State<ExploreScreen> {
                   : 'No places found',
               style: const TextStyle(color: Colors.white38, fontSize: 15),
             ),
-            const SizedBox(height: 6),
-            const Text(
-              'Try a different keyword or filter',
-              style: TextStyle(color: Colors.white24, fontSize: 12),
-            ),
           ],
         ),
       );
     }
 
-    return _isGrid
-        ? GridView.builder(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              crossAxisSpacing: 14,
-              mainAxisSpacing: 14,
-              childAspectRatio: 0.78,
-            ),
-            itemCount: _filtered.length,
-            itemBuilder: (_, i) => PlaceCard(
-              id: _filtered[i]['id'] is int
-                  ? _filtered[i]['id']
-                  : int.tryParse(_filtered[i]['id']?.toString() ?? ''),
-              image: _filtered[i]['img'] ?? '',
-              name: _filtered[i]['name'] ?? '',
-              location: _filtered[i]['loc'] ?? '',
-              rating: _filtered[i]['rating'] ?? '',
-              price: _filtered[i]['price'] ?? '',
-              category: _filtered[i]['cat'] ?? '',
-              style: PlaceCardStyle.grid,
-              isNetworkImage: false,
-              onTap: () => Navigator.pushNamed(
-                context,
-                '/place-details',
-                arguments: _filtered[i],
-              ),
-            ),
-          )
-        : ListView.separated(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-            itemCount: _filtered.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 12),
-            itemBuilder: (_, i) => PlaceCard(
-              id: _filtered[i]['id'] is int
-                  ? _filtered[i]['id']
-                  : int.tryParse(_filtered[i]['id']?.toString() ?? ''),
-              image: _filtered[i]['img'] ?? '',
-              name: _filtered[i]['name'] ?? '',
-              location: _filtered[i]['loc'] ?? '',
-              rating: _filtered[i]['rating'] ?? '',
-              price: _filtered[i]['price'] ?? '',
-              category: _filtered[i]['cat'] ?? '',
-              style: PlaceCardStyle.list,
-              isNetworkImage: false,
-              onTap: () => Navigator.pushNamed(
-                context,
-                '/place-details',
-                arguments: _filtered[i],
-              ),
-            ),
-          );
+    return ListView.separated(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 100),
+      itemCount: _filtered.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 16),
+      itemBuilder: (_, i) => _ExploreCard(
+        place: _filtered[i],
+        onTap: () => Navigator.pushNamed(
+          context,
+          '/place-details',
+          arguments: _filtered[i],
+        ),
+      ),
+    );
   }
 
   Widget _toggleBtn(IconData icon, bool isGrid) {
@@ -769,6 +768,248 @@ class _ExploreScreenState extends State<ExploreScreen> {
           color: active ? Colors.black : Colors.white38,
           size: 18,
         ),
+      ),
+    );
+  }
+}
+
+class _ExploreCard extends StatelessWidget {
+  final Map<String, dynamic> place;
+  final VoidCallback onTap;
+
+  const _ExploreCard({required this.place, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppColors.bgCard,
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ── Header: icon + name + location ──────────
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 14, 14, 10),
+              child: Row(
+                children: [
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: AppColors.goldDim,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: AppColors.borderGold),
+                    ),
+                    child: const Icon(
+                      Icons.location_city_rounded,
+                      color: AppColors.gold,
+                      size: 18,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          place['name'] ?? '',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 2),
+                        Row(
+                          children: [
+                            const Icon(
+                              Icons.location_on_rounded,
+                              color: AppColors.gold,
+                              size: 11,
+                            ),
+                            const SizedBox(width: 3),
+                            Expanded(
+                              child: Text(
+                                place['loc'] ?? '',
+                                style: const TextStyle(
+                                  color: Colors.white38,
+                                  fontSize: 11,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  // Rating
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.goldDim,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: AppColors.borderGold),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.star_rounded,
+                          color: AppColors.gold,
+                          size: 12,
+                        ),
+                        const SizedBox(width: 3),
+                        Text(
+                          place['rating'] ?? '0',
+                          style: const TextStyle(
+                            color: AppColors.gold,
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // ── Photo ────────────────────────────────────
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: SizedBox(
+                  height: 200,
+                  width: double.infinity,
+                  child: Image.asset(
+                    place['img'] ?? '',
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => Container(
+                      color: AppColors.bgInput,
+                      child: const Icon(
+                        Icons.image,
+                        color: Colors.white24,
+                        size: 40,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+
+            // ── Bottom: price + specs + button ───────────
+            Padding(
+              padding: const EdgeInsets.all(14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Price
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        place['price'] ?? '',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      const Padding(
+                        padding: EdgeInsets.only(bottom: 3),
+                        child: Text(
+                          'per person',
+                          style: TextStyle(color: Colors.white38, fontSize: 11),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 10),
+
+                  // Specs row
+                  // Specs row
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      _specChip(
+                        Icons.category_rounded,
+                        place['cat'] ?? 'Temple',
+                      ),
+                      _specChip(
+                        Icons.star_border_rounded,
+                        '${place['rating'] ?? '0'} Rating',
+                      ),
+                      _specChip(Icons.location_on_outlined, 'Egypt'),
+                    ],
+                  ),
+
+                  const SizedBox(height: 14),
+
+                  // See Details button
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: onTap,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.gold,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        elevation: 0,
+                      ),
+                      child: const Text(
+                        'See Details',
+                        style: TextStyle(
+                          color: Colors.black,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _specChip(IconData icon, String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: AppColors.bgInput,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: Colors.white38, size: 12),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: const TextStyle(color: Colors.white54, fontSize: 11),
+          ),
+        ],
       ),
     );
   }

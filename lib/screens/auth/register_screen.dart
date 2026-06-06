@@ -160,7 +160,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           // ── Background image ──────────────────────────────────
           Positioned.fill(
             child: Image.asset(
-              _isGuide ? AppAssets.pyramids : AppAssets.karnak3,
+              _isGuide ? AppAssets.siwa : AppAssets.karnak3,
               fit: BoxFit.cover,
               errorBuilder: (_, __, ___) => Container(color: AppColors.bgDark),
             ),
@@ -240,9 +240,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 38,
-                          fontWeight: FontWeight.w700, // ✅ bold
+                          fontWeight: FontWeight.w800, // ✅ bold
                           height: 1.15,
-                          letterSpacing: -0.5,
+                          letterSpacing: -0.8,
                         ),
                       ),
                       const SizedBox(height: 8),
@@ -274,12 +274,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 Expanded(
                   child: Container(
                     decoration: BoxDecoration(
-                      color: AppColors.bgCard,
+                      color: const Color.fromARGB(146, 42, 36, 31),
                       borderRadius: const BorderRadius.vertical(
                         top: Radius.circular(36),
                       ),
                       border: Border.all(
-                        color: AppColors.borderGold.withValues(alpha: 0.3),
+                        color: const Color.fromARGB(
+                          0,
+                          197,
+                          163,
+                          88,
+                        ).withValues(alpha: 0.3),
                         width: 1,
                       ),
                     ),
@@ -346,7 +351,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                           const SizedBox(height: 26),
 
-                          VenturSectionLabel('Basic Information'),
+                          Text(
+                            'Basic Information',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
                           const SizedBox(height: 16),
 
                           _DarkLabel('Full Name'),
@@ -471,7 +484,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                           if (_isGuide) ...[
                             const SizedBox(height: 28),
-                            VenturSectionLabel('Guide Information'),
+                            Text(
+                              'Guide Information',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
                             Container(
                               margin: const EdgeInsets.only(
                                 top: 12,
@@ -581,7 +602,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             child: ElevatedButton(
                               onPressed: _isLoading ? null : _register,
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.gold,
+                                backgroundColor: const Color.fromARGB(
+                                  255,
+                                  255,
+                                  255,
+                                  255,
+                                ),
                                 foregroundColor: Colors.black,
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(16),

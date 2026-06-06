@@ -9,8 +9,6 @@ import 'core/constants/app_theme.dart';
 import 'screens/auth/splash_screen.dart';
 import 'screens/auth/onboarding_screen.dart';
 import 'screens/auth/welcome_screen.dart';
-import 'screens/auth/user_selection_screen.dart';
-import 'screens/auth/login_screen.dart';
 import 'screens/auth/register_screen.dart';
 import 'screens/auth/forgot_password_screen.dart';
 import 'screens/auth/reset_password_screen.dart';
@@ -73,8 +71,6 @@ class AmunGuideApp extends StatelessWidget {
         '/splash': (ctx) => const SplashScreen(),
         '/onboarding': (ctx) => const OnboardingScreen(),
         '/welcome': (ctx) => const WelcomeScreen(),
-        '/user-selection': (ctx) => const UserSelectionScreen(),
-        '/login': (ctx) => const LoginScreen(),
         '/register': (ctx) => const RegisterScreen(),
         '/forgot-password': (ctx) => ForgotPasswordScreen(),
         '/reset-password': (ctx) => const ResetPasswordScreen(),

@@ -3,7 +3,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../core/constants/app_colors.dart';
-import '../../core/services/places_service.dart';
 
 class PlaceDetailsScreen extends StatefulWidget {
   const PlaceDetailsScreen({super.key});
@@ -12,13 +11,11 @@ class PlaceDetailsScreen extends StatefulWidget {
   State<PlaceDetailsScreen> createState() => _PlaceDetailsScreenState();
 }
 
-class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
-  // ✅ كل الـ state محمي
+class _PlaceDetailsScreenState extends State<PlaceDetailsScreen>
+    with SingleTickerProviderStateMixin {
   bool _isSaved = false;
   bool _isExpanded = false;
   bool _isLoading = true;
-
-  final _placesService = PlacesService();
 
   int _placeId = 0;
   String _title = '';
@@ -26,677 +23,383 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
   String _description = '';
   String _image = '';
   String _rating = '';
-  int _reviewsCount = 0;
-  String _aiInsightTime = '';
-  String _aiInsightDesc = '';
-  List<String> _gallery = [];
-  List<Map<String, dynamic>> _nearby = [];
+  String _category = '';
+  String _price = '';
+
+  late AnimationController _animController;
+  late Animation<double> _fadeAnim;
+  late Animation<Offset> _slideAnim;
 
   @override
   void initState() {
     super.initState();
+
     SystemChrome.setSystemUIOverlayStyle(
       const SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
         statusBarIconBrightness: Brightness.light,
       ),
     );
+
+    _animController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 500),
+    );
+
+    _fadeAnim = CurvedAnimation(parent: _animController, curve: Curves.easeOut);
+
+    _slideAnim = Tween<Offset>(
+      begin: const Offset(0, 0.12),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _animController, curve: Curves.easeOut));
+
     WidgetsBinding.instance.addPostFrameCallback((_) => _loadData());
   }
 
-  // ✅ Logic محمي بالكامل
-  Future<void> _loadData() async {
-    final args = ModalRoute.of(context)?.settings.arguments;
-    int? placeId;
-    if (args is Map<String, dynamic>) {
-      setState(() {
-        _placeId = args['id'] ?? 0;
-        _title = args['title'] ?? args['name'] ?? '';
-        _location = args['location'] ?? args['loc'] ?? '';
-        _image = args['image'] ?? args['img'] ?? args['image_url'] ?? '';
-        _rating = (args['rating'] ?? 0).toString();
-        _description = args['description'] ?? args['desc'] ?? '';
-      });
-      placeId = _placeId;
-    } else if (args is int) {
-      placeId = args;
-    }
-
-    if (placeId != null && placeId > 0) {
-      try {
-        final response = await _placesService.getPlace(placeId);
-        final data = response.data;
-        final place = data['data'] ?? data;
-        if (mounted) {
-          setState(() {
-            _placeId = place['id'] ?? placeId;
-            _title = place['title'] ?? place['name'] ?? _title;
-            _location = place['location'] ?? _location;
-            _description = place['description'] ?? _description;
-            _rating = (place['rating'] ?? _rating).toString();
-            _reviewsCount =
-                place['reviews_count'] ??
-                place['comments_count'] ??
-                _reviewsCount;
-            if (place['gallery'] != null && place['gallery'] is List) {
-              _gallery = (place['gallery'] as List)
-                  .map((img) => img.toString())
-                  .toList();
-            }
-            if (place['ai_insight'] != null && place['ai_insight'] is Map) {
-              _aiInsightTime = place['ai_insight']['time'] ?? '';
-              _aiInsightDesc = place['ai_insight']['description'] ?? '';
-            }
-            if (place['nearby'] != null && place['nearby'] is List) {
-              _nearby = List<Map<String, dynamic>>.from(place['nearby']);
-            }
-          });
-        }
-      } catch (e) {
-        debugPrint('Error loading place details: $e');
-      }
-    }
-    if (mounted) setState(() => _isLoading = false);
+  @override
+  void dispose() {
+    _animController.dispose();
+    super.dispose();
   }
 
-  Widget _buildImage(
-    String src, {
+  Future<void> _loadData() async {
+    final args = ModalRoute.of(context)?.settings.arguments;
+
+    if (args is Map<String, dynamic>) {
+      _placeId = args['id'] ?? 0;
+      _title = args['title'] ?? args['name'] ?? '';
+      _location = args['location'] ?? args['loc'] ?? '';
+      _image = args['image'] ?? args['img'] ?? args['image_url'] ?? '';
+      _rating = (args['rating'] ?? 0).toString();
+      _description = args['description'] ?? args['desc'] ?? '';
+      _category = args['category'] ?? args['type'] ?? 'Historical Site';
+      _price = args['price']?.toString() ?? args['cost']?.toString() ?? '216';
+    }
+
+    if (mounted) {
+      setState(() => _isLoading = false);
+      _animController.forward();
+    }
+  }
+
+  Widget _buildImage({
     double? width,
     double? height,
     BoxFit fit = BoxFit.cover,
   }) {
-    if (src.isEmpty) {
+    if (_image.isEmpty) {
       return Container(
-        color: AppColors.bgInput,
+        color: const Color(0xFF1A2F45),
         width: width,
         height: height,
-        child: const Icon(Icons.image, color: Colors.white24, size: 40),
+        child: const Icon(Icons.image_rounded, color: Colors.white24, size: 48),
       );
     }
-    final isNetwork = src.startsWith('http');
-    final errorWidget = Container(
-      color: AppColors.bgInput,
+    final isNetwork = _image.startsWith('http');
+    final fallback = Container(
+      color: const Color(0xFF1A2F45),
       width: width,
       height: height,
-      child: const Icon(Icons.image, color: Colors.white24, size: 40),
+      child: const Icon(Icons.image_rounded, color: Colors.white24, size: 48),
     );
     return isNetwork
         ? Image.network(
-            src,
+            _image,
             fit: fit,
             width: width,
             height: height,
-            errorBuilder: (_, __, ___) => errorWidget,
+            errorBuilder: (_, __, ___) => fallback,
           )
         : Image.asset(
-            src,
+            _image,
             fit: fit,
             width: width,
             height: height,
-            errorBuilder: (_, __, ___) => errorWidget,
+            errorBuilder: (_, __, ___) => fallback,
           );
   }
 
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return Scaffold(
-        backgroundColor: AppColors.bgDark,
-        body: const Center(
-          child: CircularProgressIndicator(color: AppColors.gold),
-        ),
+      return const Scaffold(
+        backgroundColor: Color(0xFF0D1B2A),
+        body: Center(child: CircularProgressIndicator(color: AppColors.gold)),
       );
     }
 
-    final ratingNum = double.tryParse(_rating) ?? 0;
-    final fullStars = ratingNum.floor();
-    final hasHalf = (ratingNum - fullStars) >= 0.3;
+    final screenHeight = MediaQuery.of(context).size.height;
+    final bottomPad = MediaQuery.of(context).padding.bottom;
 
     return Scaffold(
-      backgroundColor: AppColors.bgDark,
+      backgroundColor: Colors.black,
       body: Stack(
         children: [
-          CustomScrollView(
-            slivers: [
-              // ── Hero ──────────────────────────────
-              SliverAppBar(
-                expandedHeight: 320,
-                pinned: true,
-                backgroundColor: AppColors.bgDark,
-                elevation: 0,
-                leading: GestureDetector(
-                  onTap: () => Navigator.pop(context),
-                  child: Container(
-                    margin: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.5),
-                      shape: BoxShape.circle,
-                      border: Border.all(color: AppColors.border),
-                    ),
+          // ── Background image ─────────────────────────
+          Positioned.fill(child: _buildImage(fit: BoxFit.cover)),
+
+          // ── Gradient overlay ─────────────────────────
+          Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.black.withValues(alpha: 0.35),
+                    Colors.transparent,
+                    Colors.black.withValues(alpha: 0.75),
+                    Colors.black.withValues(alpha: 0.96),
+                  ],
+                  stops: const [0.0, 0.25, 0.55, 0.75],
+                ),
+              ),
+            ),
+          ),
+
+          // ── Back + Bookmark (top) ─────────────────────
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  _topButton(
+                    onTap: () => Navigator.pop(context),
                     child: const Icon(
                       Icons.arrow_back_ios_new_rounded,
                       color: Colors.white,
                       size: 16,
                     ),
                   ),
-                ),
-                actions: [
-                  GestureDetector(
-                    onTap: () {},
-                    child: Container(
-                      margin: const EdgeInsets.all(8),
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.5),
-                        shape: BoxShape.circle,
-                        border: Border.all(color: AppColors.border),
-                      ),
-                      child: const Icon(
-                        Icons.share_outlined,
-                        color: Colors.white,
-                        size: 18,
-                      ),
-                    ),
-                  ),
-                  GestureDetector(
+                  _topButton(
+                    borderColor: _isSaved ? AppColors.gold : Colors.white24,
                     onTap: () => setState(() => _isSaved = !_isSaved),
-                    child: Container(
-                      margin: const EdgeInsets.only(
-                        right: 8,
-                        top: 8,
-                        bottom: 8,
-                      ),
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: _isSaved
-                            ? AppColors.goldDim
-                            : Colors.black.withValues(alpha: 0.5),
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: _isSaved ? AppColors.gold : AppColors.border,
-                        ),
-                      ),
-                      child: Icon(
-                        _isSaved ? Icons.bookmark : Icons.bookmark_outline,
-                        color: _isSaved ? AppColors.gold : Colors.white,
-                        size: 18,
-                      ),
+                    child: Icon(
+                      _isSaved
+                          ? Icons.favorite_rounded
+                          : Icons.favorite_border_rounded,
+                      color: _isSaved ? AppColors.gold : Colors.white,
+                      size: 18,
                     ),
                   ),
                 ],
-                flexibleSpace: FlexibleSpaceBar(
-                  background: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      _buildImage(_image),
-                      const DecoratedBox(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [Colors.transparent, AppColors.bgDark],
-                            stops: [0.4, 1.0],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
               ),
+            ),
+          ),
 
-              // ── Content ───────────────────────────
-              SliverPadding(
-                padding: const EdgeInsets.fromLTRB(20, 8, 20, 120),
-                sliver: SliverList(
-                  delegate: SliverChildListDelegate([
-                    // Title + Location
-                    if (_title.isNotEmpty) ...[
-                      Text(
-                        _title,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 26,
-                          fontWeight: FontWeight.bold,
-                          height: 1.2,
+          // ── Bottom glass card ─────────────────────────
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: FadeTransition(
+              opacity: _fadeAnim,
+              child: SlideTransition(
+                position: _slideAnim,
+                child: Container(
+                  width: double.infinity,
+                  constraints: BoxConstraints(maxHeight: screenHeight * 0.62),
+                  padding: EdgeInsets.fromLTRB(20, 22, 20, bottomPad + 20),
+                  decoration: BoxDecoration(
+                    color: const Color.fromARGB(
+                      144,
+                      87,
+                      61,
+                      5,
+                    ).withValues(alpha: 0.4),
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(30),
+                    ),
+                    border: Border.all(color: Colors.white12),
+                  ),
+                  child: SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // ── Category + Rating ─────────
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [_categoryBadge(), _ratingBadge()],
                         ),
-                      ),
-                      const SizedBox(height: 8),
-                    ],
 
-                    if (_location.isNotEmpty) ...[
-                      Row(
-                        children: [
-                          const Icon(
-                            Icons.location_on_rounded,
-                            color: AppColors.gold,
-                            size: 16,
+                        const SizedBox(height: 12),
+
+                        // ── Title ──────────────────────
+                        Text(
+                          _title,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            height: 1.2,
+                            letterSpacing: -0.3,
                           ),
-                          const SizedBox(width: 4),
-                          Text(
-                            _location,
-                            style: const TextStyle(
-                              color: Colors.white54,
+                        ),
+
+                        const SizedBox(height: 6),
+
+                        // ── Location ───────────────────
+                        Row(
+                          children: [
+                            const Icon(
+                              Icons.location_on_rounded,
+                              color: AppColors.gold,
+                              size: 14,
+                            ),
+                            const SizedBox(width: 4),
+                            Expanded(
+                              child: Text(
+                                _location,
+                                style: const TextStyle(
+                                  color: Colors.white60,
+                                  fontSize: 13,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        const SizedBox(height: 14),
+
+                        // ── Spec badges ────────────────
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            _specBadge(Icons.king_bed_outlined, '4 Beds'),
+                            _specBadge(Icons.bathtub_outlined, '2 Baths'),
+                            _specBadge(Icons.straighten_rounded, '600 sqft'),
+                          ],
+                        ),
+
+                        // ── Description ────────────────
+                        if (_description.isNotEmpty) ...[
+                          const SizedBox(height: 16),
+                          const Text(
+                            'Description',
+                            style: TextStyle(
+                              color: Colors.white,
                               fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          AnimatedCrossFade(
+                            duration: const Duration(milliseconds: 250),
+                            crossFadeState: _isExpanded
+                                ? CrossFadeState.showSecond
+                                : CrossFadeState.showFirst,
+                            firstChild: Text(
+                              _description,
+                              style: const TextStyle(
+                                color: Colors.white60,
+                                fontSize: 12,
+                                height: 1.65,
+                              ),
+                              maxLines: 3,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            secondChild: Text(
+                              _description,
+                              style: const TextStyle(
+                                color: Colors.white60,
+                                fontSize: 12,
+                                height: 1.65,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          GestureDetector(
+                            onTap: () =>
+                                setState(() => _isExpanded = !_isExpanded),
+                            child: Text(
+                              _isExpanded ? 'Show less' : 'Read more',
+                              style: const TextStyle(
+                                color: AppColors.gold,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                           ),
                         ],
-                      ),
-                      const SizedBox(height: 14),
-                    ],
 
-                    // Rating row
-                    if (_rating.isNotEmpty && ratingNum > 0) ...[
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 10,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.bgCard,
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(color: AppColors.border),
-                        ),
-                        child: Row(
-                          children: [
-                            Row(
-                              children: List.generate(
-                                5,
-                                (i) => Icon(
-                                  i < fullStars
-                                      ? Icons.star_rounded
-                                      : (i == fullStars && hasHalf
-                                            ? Icons.star_half_rounded
-                                            : Icons.star_border_rounded),
-                                  color: AppColors.gold,
-                                  size: 18,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              _rating,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 15,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            if (_reviewsCount > 0) ...[
-                              const SizedBox(width: 6),
-                              Text(
-                                '($_reviewsCount reviews)',
-                                style: const TextStyle(
-                                  color: Colors.white38,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                    ],
+                        const SizedBox(height: 18),
 
-                    // AI Insight
-                    if (_aiInsightDesc.isNotEmpty) ...[
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: AppColors.bgCard,
-                          borderRadius: BorderRadius.circular(18),
-                          border: Border.all(color: AppColors.borderGold),
-                          gradient: LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [
-                              AppColors.bgCard,
-                              AppColors.gold.withValues(alpha: 0.05),
-                            ],
-                          ),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                        // ── Price + Book Now ───────────
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
-                            Row(
-                              children: [
-                                Container(
-                                  width: 36,
-                                  height: 36,
-                                  decoration: BoxDecoration(
-                                    color: AppColors.goldDim,
-                                    shape: BoxShape.circle,
-                                    border: Border.all(
-                                      color: AppColors.borderGold,
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Total Price',
+                                    style: TextStyle(
+                                      color: Colors.white38,
+                                      fontSize: 11,
                                     ),
                                   ),
-                                  child: const Icon(
-                                    Icons.auto_awesome,
-                                    color: AppColors.gold,
-                                    size: 16,
+                                  const SizedBox(height: 3),
+                                  RichText(
+                                    text: TextSpan(
+                                      children: [
+                                        TextSpan(
+                                          text: '\$$_price',
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 22,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        const TextSpan(
+                                          text: '/pax',
+                                          style: TextStyle(
+                                            color: Colors.white38,
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   ),
+                                ],
+                              ),
+                            ),
+                            GestureDetector(
+                              onTap: () => Navigator.pushNamed(
+                                context,
+                                '/tour-details',
+                                arguments: _placeId > 0
+                                    ? {'id': _placeId}
+                                    : null,
+                              ),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 30,
+                                  vertical: 15,
                                 ),
-                                const SizedBox(width: 10),
-                                const Text(
-                                  'Amun AI Insight',
+                                decoration: BoxDecoration(
+                                  color: AppColors.gold,
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                                child: const Text(
+                                  'Book Now',
                                   style: TextStyle(
-                                    color: AppColors.gold,
+                                    color: Colors.black,
                                     fontWeight: FontWeight.bold,
                                     fontSize: 14,
                                   ),
                                 ),
-                              ],
-                            ),
-                            const SizedBox(height: 12),
-                            if (_aiInsightTime.isNotEmpty) ...[
-                              RichText(
-                                text: TextSpan(
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    height: 1.5,
-                                  ),
-                                  children: [
-                                    const TextSpan(
-                                      text: 'Best time to visit: ',
-                                      style: TextStyle(color: Colors.white60),
-                                    ),
-                                    TextSpan(
-                                      text: _aiInsightTime,
-                                      style: const TextStyle(
-                                        color: AppColors.gold,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(height: 6),
-                            ],
-                            Text(
-                              _aiInsightDesc,
-                              style: const TextStyle(
-                                color: Colors.white38,
-                                fontSize: 13,
-                                height: 1.6,
                               ),
                             ),
                           ],
                         ),
-                      ),
-                      const SizedBox(height: 24),
-                    ],
-
-                    // About
-                    if (_description.isNotEmpty) ...[
-                      Row(
-                        children: [
-                          Container(
-                            width: 3,
-                            height: 18,
-                            decoration: BoxDecoration(
-                              color: AppColors.gold,
-                              borderRadius: BorderRadius.circular(2),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          const Text(
-                            'About',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        _description,
-                        style: const TextStyle(
-                          color: Colors.white54,
-                          fontSize: 14,
-                          height: 1.7,
-                        ),
-                        maxLines: _isExpanded ? null : 4,
-                        overflow: _isExpanded
-                            ? TextOverflow.visible
-                            : TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 8),
-                      GestureDetector(
-                        onTap: () => setState(() => _isExpanded = !_isExpanded),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 7,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppColors.goldDim,
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: AppColors.borderGold),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                _isExpanded ? 'Show less' : 'Read more',
-                                style: const TextStyle(
-                                  color: AppColors.gold,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              const SizedBox(width: 4),
-                              Icon(
-                                _isExpanded
-                                    ? Icons.keyboard_arrow_up_rounded
-                                    : Icons.keyboard_arrow_down_rounded,
-                                color: AppColors.gold,
-                                size: 16,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                    ],
-
-                    // Gallery
-                    if (_gallery.isNotEmpty) ...[
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Row(
-                            children: [
-                              Container(
-                                width: 3,
-                                height: 18,
-                                decoration: BoxDecoration(
-                                  color: AppColors.gold,
-                                  borderRadius: BorderRadius.circular(2),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              const Text(
-                                'Gallery',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
-                          GestureDetector(
-                            onTap: () {},
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 5,
-                              ),
-                              decoration: BoxDecoration(
-                                color: AppColors.goldDim,
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(color: AppColors.borderGold),
-                              ),
-                              child: const Text(
-                                'View All',
-                                style: TextStyle(
-                                  color: AppColors.gold,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      SizedBox(
-                        height: 130,
-                        child: ListView.separated(
-                          scrollDirection: Axis.horizontal,
-                          itemCount: _gallery.length,
-                          separatorBuilder: (_, __) =>
-                              const SizedBox(width: 10),
-                          itemBuilder: (_, i) => ClipRRect(
-                            borderRadius: BorderRadius.circular(14),
-                            child: _buildImage(
-                              _gallery[i],
-                              width: 160,
-                              height: 130,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                    ],
-
-                    // Reviews
-                    if (_reviewsCount > 0) ...[
-                      _buildReviewsSection(ratingNum),
-                      const SizedBox(height: 24),
-                    ],
-
-                    // Nearby
-                    if (_nearby.isNotEmpty) ...[
-                      Row(
-                        children: [
-                          Container(
-                            width: 3,
-                            height: 18,
-                            decoration: BoxDecoration(
-                              color: AppColors.gold,
-                              borderRadius: BorderRadius.circular(2),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          const Text(
-                            'Nearby Attractions',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 14),
-                      SizedBox(
-                        height: 160,
-                        child: ListView.separated(
-                          scrollDirection: Axis.horizontal,
-                          itemCount: _nearby.length,
-                          separatorBuilder: (_, __) =>
-                              const SizedBox(width: 12),
-                          itemBuilder: (_, i) => _buildNearbyCard(
-                            img: _nearby[i]['img'] ?? _nearby[i]['image'] ?? '',
-                            name:
-                                _nearby[i]['name'] ?? _nearby[i]['title'] ?? '',
-                            dist:
-                                _nearby[i]['dist'] ??
-                                _nearby[i]['distance'] ??
-                                '',
-                            rating: (_nearby[i]['rating'] ?? 0).toString(),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ]),
+                      ],
+                    ),
+                  ),
                 ),
-              ),
-            ],
-          ),
-
-          // ── Bottom Bar ────────────────────────────
-          Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            child: Container(
-              padding: EdgeInsets.fromLTRB(
-                20,
-                14,
-                20,
-                MediaQuery.of(context).padding.bottom + 14,
-              ),
-              decoration: BoxDecoration(
-                color: AppColors.bgCard,
-                border: const Border(top: BorderSide(color: AppColors.border)),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.3),
-                    blurRadius: 20,
-                    offset: const Offset(0, -5),
-                  ),
-                ],
-              ),
-              child: Row(
-                children: [
-                  // Ask AI button
-                  GestureDetector(
-                    onTap: () => Navigator.pushNamed(context, '/ai-chat'),
-                    child: Container(
-                      width: 50,
-                      height: 50,
-                      decoration: BoxDecoration(
-                        color: AppColors.goldDim,
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: AppColors.borderGold),
-                      ),
-                      child: const Icon(
-                        Icons.auto_awesome,
-                        color: AppColors.gold,
-                        size: 22,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () => Navigator.pushNamed(
-                        context,
-                        '/tour-details',
-                        arguments: _placeId > 0 ? {'id': _placeId} : null,
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.gold,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        elevation: 0,
-                      ),
-                      child: const Text(
-                        'Add to Plan',
-                        style: TextStyle(
-                          color: Colors.black,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 15,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
               ),
             ),
           ),
@@ -705,177 +408,98 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
     );
   }
 
-  Widget _buildReviewsSection(double ratingNum) {
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: AppColors.bgCard,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 3,
-                height: 18,
-                decoration: BoxDecoration(
-                  color: AppColors.gold,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              const SizedBox(width: 8),
-              const Text(
-                'Reviews',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Column(
-                children: [
-                  Text(
-                    _rating,
-                    style: const TextStyle(
-                      color: AppColors.gold,
-                      fontSize: 42,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  Row(
-                    children: List.generate(
-                      5,
-                      (i) => Icon(
-                        i < ratingNum.floor()
-                            ? Icons.star_rounded
-                            : (i == ratingNum.floor() &&
-                                      (ratingNum - ratingNum.floor() >= 0.3)
-                                  ? Icons.star_half_rounded
-                                  : Icons.star_border_rounded),
-                        color: AppColors.gold,
-                        size: 14,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '$_reviewsCount reviews',
-                    style: const TextStyle(color: Colors.white38, fontSize: 11),
-                  ),
-                ],
-              ),
-              const SizedBox(width: 20),
-              Expanded(
-                child: Column(
-                  children: List.generate(5, (i) {
-                    final vals = [0.85, 0.65, 0.3, 0.15, 0.05];
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 3),
-                      child: Row(
-                        children: [
-                          Text(
-                            '${5 - i}',
-                            style: const TextStyle(
-                              color: Colors.white38,
-                              fontSize: 11,
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          Expanded(
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(4),
-                              child: LinearProgressIndicator(
-                                value: vals[i],
-                                backgroundColor: AppColors.bgInput,
-                                valueColor: const AlwaysStoppedAnimation<Color>(
-                                  AppColors.gold,
-                                ),
-                                minHeight: 6,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  }),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
+  // ── Helper widgets ────────────────────────────────────
 
-  Widget _buildNearbyCard({
-    required String img,
-    required String name,
-    required String dist,
-    required String rating,
+  Widget _topButton({
+    required VoidCallback onTap,
+    required Widget child,
+    Color borderColor = Colors.white24,
   }) {
     return GestureDetector(
-      onTap: () {},
-      child: SizedBox(
-        width: 150,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(14),
-              child: _buildImage(img, width: 150, height: 105),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              name,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: 3),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Text(
-                    dist,
-                    style: const TextStyle(color: Colors.white38, fontSize: 11),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                Row(
-                  children: [
-                    const Icon(
-                      Icons.star_rounded,
-                      color: AppColors.gold,
-                      size: 12,
-                    ),
-                    const SizedBox(width: 2),
-                    Text(
-                      rating,
-                      style: const TextStyle(
-                        color: AppColors.gold,
-                        fontSize: 11,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ],
+      onTap: onTap,
+      child: Container(
+        width: 38,
+        height: 38,
+        decoration: BoxDecoration(
+          color: Colors.black.withValues(alpha: 0.42),
+          shape: BoxShape.circle,
+          border: Border.all(color: borderColor),
         ),
+        child: Center(child: child),
+      ),
+    );
+  }
+
+  Widget _categoryBadge() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.13),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white24),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(
+            Icons.location_city_rounded,
+            color: Colors.white70,
+            size: 12,
+          ),
+          const SizedBox(width: 5),
+          Text(
+            _category.isNotEmpty ? _category : 'Historical Site',
+            style: const TextStyle(color: Colors.white70, fontSize: 11),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _ratingBadge() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: AppColors.gold.withValues(alpha: 0.18),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.borderGold),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.star_rounded, color: AppColors.gold, size: 13),
+          const SizedBox(width: 4),
+          Text(
+            _rating.isNotEmpty ? _rating : '0',
+            style: const TextStyle(
+              color: AppColors.gold,
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _specBadge(IconData icon, String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.white24),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: Colors.white54, size: 13),
+          const SizedBox(width: 5),
+          Text(
+            label,
+            style: const TextStyle(color: Colors.white70, fontSize: 11),
+          ),
+        ],
       ),
     );
   }
