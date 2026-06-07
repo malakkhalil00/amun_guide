@@ -7,6 +7,8 @@ import '../../core/services/tours_service.dart';
 import '../../core/services/places_service.dart';
 import '../../core/services/tour_booking_service.dart';
 import '../../core/widgets/animated_page_wrapper.dart';
+import 'dart:typed_data';
+import 'dart:convert';
 import '../../core/widgets/app_skeleton.dart';
 
 // ════════════════════════════════════════════════════════════════
@@ -62,6 +64,7 @@ class _DashboardScreenState extends State<DashboardScreen>
   late final AnimationController _fadeCtrl;
   late final Animation<double> _fadeAnim;
 
+  Uint8List? _userImageBytes;
   // ────────────────────────────────────────────────────────────
   // LIFECYCLE
   // ────────────────────────────────────────────────────────────
@@ -75,11 +78,15 @@ class _DashboardScreenState extends State<DashboardScreen>
     );
     _fadeAnim = CurvedAnimation(parent: _fadeCtrl, curve: Curves.easeOut);
     _fadeCtrl.forward();
-
-    _loadUserData();
     _loadTours();
     _loadPlaces();
     _loadUpcomingTrip();
+  }
+
+  @override
+  void didUpdateWidget(DashboardScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _loadUserData();
   }
 
   @override
@@ -99,6 +106,9 @@ class _DashboardScreenState extends State<DashboardScreen>
       setState(() {
         _userName = data['name']?.toString().split(' ').first ?? 'Explorer';
         _userImage = data['profile_image'] ?? '';
+        if (_userImage.startsWith('base64:')) {
+          _userImageBytes = base64Decode(_userImage.substring(7));
+        }
         _points = data['points'] ?? 0;
       });
     }
@@ -408,17 +418,22 @@ class _DashboardScreenState extends State<DashboardScreen>
               children: [
                 // Avatar
                 GestureDetector(
-                  onTap: () => Navigator.pushNamed(context, '/profile'),
+                  onTap: () {},
                   child: Container(
                     width: 44,
                     height: 44,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      border: Border.all(color: const Color(0xFFC5A358), width: 1.5),
+                      border: Border.all(
+                        color: const Color(0xFFC5A358),
+                        width: 1.5,
+                      ),
                     ),
                     child: ClipOval(
-                      child:
-                          _userImage.isNotEmpty && _userImage.startsWith('http')
+                      child: _userImageBytes != null
+                          ? Image.memory(_userImageBytes!, fit: BoxFit.cover)
+                          : _userImage.isNotEmpty &&
+                                _userImage.startsWith('http')
                           ? Image.network(
                               _userImage,
                               fit: BoxFit.cover,

@@ -18,20 +18,24 @@ class MainNavigation extends StatefulWidget {
 class _MainNavigationState extends State<MainNavigation>
     with TickerProviderStateMixin {
   int _currentIndex = 0;
-  late final List<Widget> _screens;
 
   late final List<AnimationController> _controllers;
   late final List<Animation<double>> _scaleAnims;
+
+  // ── نبني الـ dashboard كل مرة نيجي عليه ──
+  DashboardScreen _buildDashboard() => DashboardScreen(
+        onExplore: () => setState(() => _currentIndex = 1),
+        onTours: () => setState(() => _currentIndex = 2),
+      );
+
+  late List<Widget> _screens;
 
   @override
   void initState() {
     super.initState();
 
     _screens = [
-      DashboardScreen(
-        onExplore: () => setState(() => _currentIndex = 1),
-        onTours: () => setState(() => _currentIndex = 2),
-      ),
+      _buildDashboard(),
       const ExploreScreen(),
       const ToursScreen(),
       const MyBookingsScreen(),
@@ -47,10 +51,9 @@ class _MainNavigationState extends State<MainNavigation>
     );
 
     _scaleAnims = _controllers.map((c) {
-      return Tween<double>(
-        begin: 1.0,
-        end: 1.2,
-      ).animate(CurvedAnimation(parent: c, curve: Curves.easeOut));
+      return Tween<double>(begin: 1.0, end: 1.2).animate(
+        CurvedAnimation(parent: c, curve: Curves.easeOut),
+      );
     }).toList();
 
     _controllers[0].forward();
@@ -68,7 +71,14 @@ class _MainNavigationState extends State<MainNavigation>
     if (_currentIndex == index) return;
     _controllers[_currentIndex].reverse();
     _controllers[index].forward();
-    setState(() => _currentIndex = index);
+
+    setState(() {
+      // لما نيجي على الـ Home نعمل rebuild للـ dashboard
+      if (index == 0) {
+        _screens[0] = _buildDashboard();
+      }
+      _currentIndex = index;
+    });
   }
 
   @override

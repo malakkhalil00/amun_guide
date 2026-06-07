@@ -19,6 +19,8 @@ class _ToursScreenState extends State<ToursScreen>
 
   bool _isLoading = true;
   bool _isSearching = false;
+  bool _showSearch = false;
+
   int _activeFilter = 0;
 
   final _filters = ['All', '1D', '2-3D', '4-7D', '7D+'];
@@ -126,7 +128,7 @@ class _ToursScreenState extends State<ToursScreen>
 
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppColors.gold,
+      backgroundColor: AppColors.bgCard,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
@@ -173,7 +175,7 @@ class _ToursScreenState extends State<ToursScreen>
                       ),
                       decoration: BoxDecoration(
                         border: Border.all(
-                          color: AppColors.gold.withValues(alpha: 0.4),
+                          color: AppColors.bgCard.withValues(alpha: 0.4),
                         ),
                         borderRadius: BorderRadius.circular(20),
                       ),
@@ -203,13 +205,13 @@ class _ToursScreenState extends State<ToursScreen>
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: AppColors.gold.withValues(alpha: 0.12),
+                      color: AppColors.borderGold.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
                       '\$${tempMin.toInt()} — \$${tempMax.toInt()}',
                       style: const TextStyle(
-                        color: AppColors.gold,
+                        color: AppColors.borderGold,
                         fontSize: 12,
                       ),
                     ),
@@ -218,7 +220,7 @@ class _ToursScreenState extends State<ToursScreen>
               ),
               SliderTheme(
                 data: SliderThemeData(
-                  activeTrackColor: AppColors.gold,
+                  activeTrackColor: AppColors.borderGold,
                   inactiveTrackColor: Colors.white10,
                   thumbColor: AppColors.gold,
                   overlayColor: AppColors.gold.withValues(alpha: 0.1),
@@ -483,7 +485,7 @@ class _ToursScreenState extends State<ToursScreen>
                 children: [
                   // Search icon button
                   GestureDetector(
-                    onTap: () {},
+                    onTap: () => setState(() => _showSearch = !_showSearch),
                     child: Container(
                       width: 40,
                       height: 40,
@@ -505,6 +507,7 @@ class _ToursScreenState extends State<ToursScreen>
                       ),
                     ),
                   ),
+
                   const SizedBox(width: 10),
                   // Filter icon button
                   GestureDetector(
@@ -534,7 +537,88 @@ class _ToursScreenState extends State<ToursScreen>
               ),
             ],
           ),
-
+          if (_showSearch)
+            Row(
+              children: [
+                Expanded(
+                  child: Container(
+                    height: 52,
+                    decoration: BoxDecoration(
+                      color: AppColors.bgCard,
+                      borderRadius: BorderRadius.circular(30),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.08),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        const SizedBox(width: 20),
+                        Expanded(
+                          child: TextField(
+                            controller: _searchController,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                            ),
+                            onChanged: _onSearchChanged,
+                            onTapOutside: (_) =>
+                                FocusScope.of(context).unfocus(),
+                            decoration: const InputDecoration(
+                              hintText: 'Search tours...',
+                              hintStyle: TextStyle(
+                                color: Color(0xFFAAAAAA),
+                                fontSize: 14,
+                              ),
+                              border: InputBorder.none,
+                              isDense: true,
+                              contentPadding: EdgeInsets.symmetric(
+                                vertical: 16,
+                              ),
+                            ),
+                          ),
+                        ),
+                        if (_isSearching)
+                          GestureDetector(
+                            onTap: () {
+                              _searchController.clear();
+                              setState(() {
+                                _isSearching = false;
+                                _tours = _allTours;
+                              });
+                            },
+                            child: const Padding(
+                              padding: EdgeInsets.only(right: 8),
+                              child: Icon(
+                                Icons.close_rounded,
+                                color: Color(0xFFAAAAAA),
+                                size: 18,
+                              ),
+                            ),
+                          ),
+                        Container(
+                          width: 44,
+                          height: 44,
+                          margin: const EdgeInsets.all(4),
+                          decoration: const BoxDecoration(
+                            color: AppColors.gold,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.search_rounded,
+                            color: AppColors.bgCard,
+                            size: 20,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
           const SizedBox(height: 20),
 
           // Filter chips

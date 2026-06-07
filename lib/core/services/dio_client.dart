@@ -9,39 +9,39 @@ class DioClient {
   late Dio dio;
 
   DioClient._internal() {
-    dio = Dio(BaseOptions(
-      baseUrl: Api.baseUrl,
-      connectTimeout: const Duration(seconds: 30),
-      receiveTimeout: const Duration(seconds: 30),
-      headers: {
-        'Accept': 'application/json',
-      },
-    ));
+    dio = Dio(
+      BaseOptions(
+        baseUrl: Api.baseUrl,
+        connectTimeout: const Duration(seconds: 30),
+        receiveTimeout: const Duration(seconds: 30),
+        headers: {'Accept': 'application/json'},
+      ),
+    );
 
     // ── Request Interceptor ─────────────────────────
-    dio.interceptors.add(InterceptorsWrapper(
-      onRequest: (options, handler) async {
-        final prefs = await SharedPreferences.getInstance();
-        final token = prefs.getString('auth_token');
-        if (token != null && token.isNotEmpty) {
-          options.headers['Authorization'] = 'Bearer $token';
-        }
-        return handler.next(options);
-      },
-      onResponse: (response, handler) {
-        return handler.next(response);
-      },
-      onError: (DioException error, handler) {
-        return handler.next(error);
-      },
-    ));
+    dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) async {
+          final prefs = await SharedPreferences.getInstance();
+          final token = prefs.getString('auth_token');
+          if (token != null && token.isNotEmpty) {
+            options.headers['Authorization'] = 'Bearer $token';
+          }
+          return handler.next(options);
+        },
+        onResponse: (response, handler) {
+          return handler.next(response);
+        },
+        onError: (DioException error, handler) {
+          return handler.next(error);
+        },
+      ),
+    );
 
     // ── Logging Interceptor (Debug) ─────────────────
-    dio.interceptors.add(LogInterceptor(
-      requestBody: true,
-      responseBody: true,
-      error: true,
-    ));
+    dio.interceptors.add(
+      LogInterceptor(requestBody: true, responseBody: true, error: true),
+    );
   }
 
   // ── Token Management ──────────────────────────────
@@ -97,7 +97,11 @@ class DioClient {
 
   static Future<void> clearAll() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.clear();
+    await prefs.remove('auth_token');
+    await prefs.remove('remember_me');
+    await prefs.remove('saved_email');
+    await prefs.remove('saved_password');
+    await prefs.remove('user_profile_image');
   }
 
   static Future<bool> isLoggedIn() async {

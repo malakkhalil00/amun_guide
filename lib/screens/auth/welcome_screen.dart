@@ -370,41 +370,54 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                               ),
 
                               const SizedBox(height: 22),
+                              AutofillGroup(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    // ── Email ───────────────────────
+                                    _FieldLabel('Email Address'),
+                                    const SizedBox(height: 8),
+                                    _InputField(
+                                      controller: _emailController,
+                                      hint: 'user@example.com',
+                                      icon: Icons.email_outlined,
+                                      keyboardType: TextInputType.emailAddress,
+                                      autofillHints: const [
+                                        AutofillHints.email,
+                                      ],
+                                    ),
 
-                              // ── Email ───────────────────────
-                              _FieldLabel('Email Address'),
-                              const SizedBox(height: 8),
-                              _InputField(
-                                controller: _emailController,
-                                hint: 'user@example.com',
-                                icon: Icons.email_outlined,
-                                keyboardType: TextInputType.emailAddress,
-                              ),
+                                    const SizedBox(height: 16),
 
-                              const SizedBox(height: 16),
+                                    // ── Password ────────────────────
+                                    _FieldLabel('Password'),
+                                    const SizedBox(height: 8),
+                                    _InputField(
+                                      controller: _passwordController,
+                                      autofillHints: const [
+                                        AutofillHints.password,
+                                      ],
 
-                              // ── Password ────────────────────
-                              _FieldLabel('Password'),
-                              const SizedBox(height: 8),
-                              _InputField(
-                                controller: _passwordController,
-                                hint: '••••••••',
-                                icon: Icons.lock_outline,
-                                obscure: _obscurePassword,
-                                suffixIcon: IconButton(
-                                  icon: Icon(
-                                    _obscurePassword
-                                        ? Icons.visibility_off_outlined
-                                        : Icons.visibility_outlined,
-                                    color: Colors.white38,
-                                    size: 20,
-                                  ),
-                                  onPressed: () => setState(
-                                    () => _obscurePassword = !_obscurePassword,
-                                  ),
+                                      hint: '••••••••',
+                                      icon: Icons.lock_outline,
+                                      obscure: _obscurePassword,
+                                      suffixIcon: IconButton(
+                                        icon: Icon(
+                                          _obscurePassword
+                                              ? Icons.visibility_off_outlined
+                                              : Icons.visibility_outlined,
+                                          color: Colors.white38,
+                                          size: 20,
+                                        ),
+                                        onPressed: () => setState(
+                                          () => _obscurePassword =
+                                              !_obscurePassword,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
-
                               // ── National ID — Guide only ────
                               AnimatedSize(
                                 duration: const Duration(milliseconds: 300),
@@ -653,6 +666,7 @@ class _InputField extends StatelessWidget {
   final bool obscure;
   final TextInputType keyboardType;
   final Widget? suffixIcon;
+  final List<String>? autofillHints;
 
   const _InputField({
     required this.controller,
@@ -661,6 +675,7 @@ class _InputField extends StatelessWidget {
     this.obscure = false,
     this.keyboardType = TextInputType.text,
     this.suffixIcon,
+    this.autofillHints,
   });
 
   @override
@@ -675,6 +690,8 @@ class _InputField extends StatelessWidget {
         controller: controller,
         obscureText: obscure,
         keyboardType: keyboardType,
+        autofillHints: autofillHints,
+
         style: const TextStyle(
           color: Colors.white,
           fontSize: 14,

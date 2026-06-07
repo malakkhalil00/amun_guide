@@ -22,6 +22,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
   bool _isGrid = true;
   bool _isLoading = true;
   bool _isSearching = false;
+  bool _showSearch = false;
 
   final _searchController = TextEditingController();
   final _placesService = PlacesService();
@@ -493,7 +494,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                 children: [
                   // Search icon button
                   GestureDetector(
-                    onTap: () {},
+                    onTap: () => setState(() => _showSearch = !_showSearch),
                     child: Container(
                       width: 40,
                       height: 40,
@@ -547,86 +548,90 @@ class _ExploreScreenState extends State<ExploreScreen> {
 
           const SizedBox(height: 10),
 
-          // // Search bar
-          // Row(
-          //   children: [
-          //     Expanded(
-          //       child: Container(
-          //         height: 52,
-          //         decoration: BoxDecoration(
-          //           color: Colors.white,
-          //           borderRadius: BorderRadius.circular(30),
-          //           boxShadow: [
-          //             BoxShadow(
-          //               color: Colors.black.withValues(alpha: 0.08),
-          //               blurRadius: 12,
-          //               offset: const Offset(0, 4),
-          //             ),
-          //           ],
-          //         ),
-          //         child: Row(
-          //           children: [
-          //             const SizedBox(width: 20),
-          //             Expanded(
-          //               child: TextField(
-          //                 controller: _searchController,
-          //                 style: const TextStyle(
-          //                   color: Color(0xFF1A1A2E),
-          //                   fontSize: 14,
-          //                 ),
-          //                 onChanged: _onSearchChanged,
-          //                 onTapOutside: (_) => FocusScope.of(context).unfocus(),
-          //                 decoration: const InputDecoration(
-          //                   hintText: 'Search places...',
-          //                   hintStyle: TextStyle(
-          //                     color: Color(0xFFAAAAAA),
-          //                     fontSize: 14,
-          //                   ),
-          //                   border: InputBorder.none,
-          //                   isDense: true,
-          //                   contentPadding: EdgeInsets.symmetric(vertical: 16),
-          //                 ),
-          //               ),
-          //             ),
-          //             if (_isSearching)
-          //               GestureDetector(
-          //                 onTap: () {
-          //                   _searchController.clear();
-          //                   setState(() => _isSearching = false);
-          //                   _loadPlaces();
-          //                 },
-          //                 child: const Padding(
-          //                   padding: EdgeInsets.only(right: 8),
-          //                   child: Icon(
-          //                     Icons.close_rounded,
-          //                     color: Color(0xFFAAAAAA),
-          //                     size: 18,
-          //                   ),
-          //                 ),
-          //               ),
-          //             GestureDetector(
-          //               onTap: () {},
-          //               child: Container(
-          //                 width: 44,
-          //                 height: 44,
-          //                 margin: const EdgeInsets.all(4),
-          //                 decoration: const BoxDecoration(
-          //                   color: Color(0xFF1A1A2E),
-          //                   shape: BoxShape.circle,
-          //                 ),
-          //                 child: const Icon(
-          //                   Icons.search_rounded,
-          //                   color: Colors.white,
-          //                   size: 20,
-          //                 ),
-          //               ),
-          //             ),
-          //           ],
-          //         ),
-          //       ),
-          //     ),
-          //   ],
-          // ),
+          // Search bar
+          if (_showSearch)
+            Row(
+              children: [
+                Expanded(
+                  child: Container(
+                    height: 52,
+                    decoration: BoxDecoration(
+                      color: AppColors.bgCard,
+                      borderRadius: BorderRadius.circular(30),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.08),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        const SizedBox(width: 20),
+                        Expanded(
+                          child: TextField(
+                            controller: _searchController,
+                            style: const TextStyle(
+                              color: Color.fromARGB(255, 240, 240, 241),
+                              fontSize: 14,
+                            ),
+                            onChanged: _onSearchChanged,
+                            onTapOutside: (_) =>
+                                FocusScope.of(context).unfocus(),
+                            decoration: const InputDecoration(
+                              hintText: 'Search places...',
+                              hintStyle: TextStyle(
+                                color: Color(0xFFAAAAAA),
+                                fontSize: 14,
+                              ),
+                              border: InputBorder.none,
+                              isDense: true,
+                              contentPadding: EdgeInsets.symmetric(
+                                vertical: 16,
+                              ),
+                            ),
+                          ),
+                        ),
+                        if (_isSearching)
+                          GestureDetector(
+                            onTap: () {
+                              _searchController.clear();
+                              setState(() => _isSearching = false);
+                              _loadPlaces();
+                            },
+                            child: const Padding(
+                              padding: EdgeInsets.only(right: 8),
+                              child: Icon(
+                                Icons.close_rounded,
+                                color: AppColors.bgInput,
+                                size: 18,
+                              ),
+                            ),
+                          ),
+                        GestureDetector(
+                          onTap: () {},
+                          child: Container(
+                            width: 44,
+                            height: 44,
+                            margin: const EdgeInsets.all(4),
+                            decoration: const BoxDecoration(
+                              color: AppColors.gold,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.search_rounded,
+                              color: AppColors.bgInput,
+                              size: 20,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
           const SizedBox(height: 20),
 
           // Filter chips
