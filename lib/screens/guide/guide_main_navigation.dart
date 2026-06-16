@@ -1,9 +1,15 @@
+// 📁 lib/screens/guide/guide_main_navigation.dart
+// ✅ ربط كل الـ tabs بالـ screens الحقيقية
+
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
-import 'guide_placeholder_screen.dart';
 import 'guide_dashboard_screen.dart';
-import '../tourist/profile_screen.dart';
 import 'guide_tours_screen.dart';
+import 'guide_bookings_screen.dart';
+import 'guide_placeholder_screen.dart';
+import 'guide_messages_screen.dart';
+import '../tourist/profile_screen.dart';
+
 
 class GuideMainNavigation extends StatefulWidget {
   const GuideMainNavigation({super.key});
@@ -25,18 +31,11 @@ class _GuideMainNavigationState extends State<GuideMainNavigation>
     super.initState();
 
     _screens = [
-      const GuideDashboardScreen(),
-      const GuideToursScreen(),
-
-      const GuidePlaceholderScreen(
-        title: 'Booking Requests',
-        icon: Icons.book_online_outlined,
-      ),
-      const GuidePlaceholderScreen(
-        title: 'Messages',
-        icon: Icons.message_outlined,
-      ),
-      const ProfileScreen(),
+      const GuideDashboardScreen(),      // Tab 0 — Dashboard
+      const GuideToursScreen(),          // Tab 1 — My Tours
+      const GuideBookingsScreen(),       // Tab 2 — Bookings ✅ ربط حقيقي
+      const GuideMessagesScreen(),       // Tab 3 — Messages ✅
+      const ProfileScreen(),             // Tab 4 — Profile
     ];
 
     _controllers = List.generate(
@@ -48,10 +47,8 @@ class _GuideMainNavigationState extends State<GuideMainNavigation>
     );
 
     _scaleAnims = _controllers.map((c) {
-      return Tween<double>(
-        begin: 1.0,
-        end: 1.2,
-      ).animate(CurvedAnimation(parent: c, curve: Curves.easeOut));
+      return Tween<double>(begin: 1.0, end: 1.2)
+          .animate(CurvedAnimation(parent: c, curve: Curves.easeOut));
     }).toList();
 
     _controllers[0].forward();
@@ -91,9 +88,7 @@ class _GuideMainNavigationState extends State<GuideMainNavigation>
     return Container(
       decoration: BoxDecoration(
         color: AppColors.bgCard,
-        border: const Border(
-          top: BorderSide(color: AppColors.border, width: 1),
-        ),
+        border: const Border(top: BorderSide(color: AppColors.border, width: 1)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.3),
@@ -143,16 +138,11 @@ class _GuideMainNavigationState extends State<GuideMainNavigation>
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 250),
                 curve: Curves.easeOut,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 7,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
                 decoration: BoxDecoration(
                   color: isActive ? AppColors.goldDim : Colors.transparent,
                   borderRadius: BorderRadius.circular(20),
-                  border: isActive
-                      ? Border.all(color: AppColors.borderGold)
-                      : null,
+                  border: isActive ? Border.all(color: AppColors.borderGold) : null,
                 ),
                 child: Icon(
                   isActive ? activeIcon : icon,

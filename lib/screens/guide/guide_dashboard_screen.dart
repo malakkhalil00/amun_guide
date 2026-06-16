@@ -14,6 +14,7 @@ class GuideDashboardScreen extends StatefulWidget {
 
 class _GuideDashboardScreenState extends State<GuideDashboardScreen>
     with SingleTickerProviderStateMixin {
+  // ── State ────────────────────────────────────────────────
   String _guideName = 'Guide';
   String _guideImage = '';
 
@@ -36,6 +37,7 @@ class _GuideDashboardScreenState extends State<GuideDashboardScreen>
   late final AnimationController _fadeCtrl;
   late final Animation<double> _fadeAnim;
 
+  // ── Lifecycle ────────────────────────────────────────────
   @override
   void initState() {
     super.initState();
@@ -58,6 +60,7 @@ class _GuideDashboardScreenState extends State<GuideDashboardScreen>
     super.dispose();
   }
 
+  // ── API calls (unchanged) ────────────────────────────────
   Future<void> _loadGuideData() async {
     final data = await DioClient.getUserData();
     if (mounted) {
@@ -136,7 +139,8 @@ class _GuideDashboardScreenState extends State<GuideDashboardScreen>
                 (b) => {
                   'id': b['id'],
                   'tourist': b['user']?['name'] ?? 'Tourist',
-                  'tour': b['tour']?['title'] ?? b['tour']?['name'] ?? 'Tour',
+                  'tour':
+                      b['tour']?['title'] ?? b['tour']?['name'] ?? 'Tour',
                   'date':
                       b['booking_date'] ??
                       b['created_at']?.toString().split('T').first ??
@@ -155,10 +159,9 @@ class _GuideDashboardScreenState extends State<GuideDashboardScreen>
     }
   }
 
-  // ════════════════════════════════════════════════════════════
+  // ════════════════════════════════════════════════════════
   // BUILD
-  // ════════════════════════════════════════════════════════════
-
+  // ════════════════════════════════════════════════════════
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -168,21 +171,43 @@ class _GuideDashboardScreenState extends State<GuideDashboardScreen>
         child: CustomScrollView(
           physics: const BouncingScrollPhysics(),
           slivers: [
-            SliverToBoxAdapter(child: _buildHeader()),
+            // ── Top bar ──────────────────────────────────
+            SliverToBoxAdapter(child: _buildTopBar()),
+
             SliverPadding(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
               sliver: SliverList(
                 delegate: SliverChildListDelegate([
+                  // ── Hero revenue card ─────────────────
+                  _buildHeroCard(),
+                  const SizedBox(height: 16),
+
+                  // ── Search bar ────────────────────────
+                  _buildSearchBar(),
                   const SizedBox(height: 24),
-                  _buildStatsGrid(),
-                  const SizedBox(height: 20),
-                  _buildCreateTourBtn(context),
-                  const SizedBox(height: 28),
-                  _buildQuickActions(context),
-                  const SizedBox(height: 28),
-                  _buildRecentBookings(context),
-                  const SizedBox(height: 28),
-                  _buildMyTours(context),
+
+                  // ── Current Tour ──────────────────────
+                  _buildSectionTitle('Current Tour'),
+                  const SizedBox(height: 12),
+                  _buildCurrentTour(),
+                  const SizedBox(height: 24),
+
+                  // ── Recent Requests ───────────────────
+                  _buildSectionHeader(
+                    title: 'Recent Requests',
+                    onSeeAll: () => Navigator.pushNamed(context, '/my-bookings'),
+                  ),
+                  const SizedBox(height: 12),
+                  _buildRecentRequests(),
+                  const SizedBox(height: 24),
+
+                  // ── My Tours ──────────────────────────
+                  _buildSectionHeader(
+                    title: 'My Tours',
+                    onSeeAll: () => Navigator.pushNamed(context, '/guide-tours'),
+                  ),
+                  const SizedBox(height: 12),
+                  _buildMyToursList(),
                   const SizedBox(height: 20),
                 ]),
               ),
@@ -193,589 +218,656 @@ class _GuideDashboardScreenState extends State<GuideDashboardScreen>
     );
   }
 
-  // ════════════════════════════════════════════════════════════
-  // HEADER — نفس ثيم الـ tourist بس للـ guide
-  // ════════════════════════════════════════════════════════════
-
-  Widget _buildHeader() {
-    final hour = DateTime.now().hour;
-    final greeting = hour < 12
-        ? 'Good Morning'
-        : hour < 17
-        ? 'Good Afternoon'
-        : 'Good Evening';
-
-    return SizedBox(
-      height: 260,
-      child: Stack(
-        children: [
-          // ── Background image ────────────────────────────
-          Positioned.fill(
-            child: Image.asset(
-              AppAssets.karnak3,
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => Container(color: AppColors.bgDark),
-            ),
-          ),
-
-          // ── Gradient overlay ────────────────────────────
-          Positioned.fill(
-            child: Container(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Color(0x44000000),
-                    Color(0xCC0B0B0F),
-                    Color(0xFF0B0B0F),
-                  ],
-                  stops: [0.0, 0.6, 1.0],
+  // ════════════════════════════════════════════════════════
+  // TOP BAR  (Hello + name + location + bell)
+  // ════════════════════════════════════════════════════════
+  Widget _buildTopBar() {
+    return SafeArea(
+      bottom: false,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 14, 20, 12),
+        child: Row(
+          children: [
+            // Avatar
+            GestureDetector(
+              onTap: () => Navigator.pushNamed(context, '/profile'),
+              child: Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: AppColors.gold, width: 1.5),
+                ),
+                child: ClipOval(
+                  child: _guideImage.isNotEmpty &&
+                          _guideImage.startsWith('http')
+                      ? Image.network(
+                          _guideImage,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) =>
+                              _avatarFallback(),
+                        )
+                      : _avatarFallback(),
                 ),
               ),
             ),
-          ),
+            const SizedBox(width: 12),
 
-          // ── Gold top line ───────────────────────────────
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            child: Container(
-              height: 3,
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    Colors.transparent,
-                    AppColors.gold,
-                    Colors.transparent,
-                  ],
-                ),
-              ),
-            ),
-          ),
-
-          // ── Content ─────────────────────────────────────
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 14, 20, 20),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            // Greeting
+            Expanded(
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Left: greeting + name + badge
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
+                  const Text(
+                    'Hello,',
+                    style: TextStyle(
+                      color: Colors.white38,
+                      fontSize: 11,
+                    ),
+                  ),
+                  Text(
+                    _guideName.toUpperCase(),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                  Row(
+                    children: const [
+                      Icon(
+                        Icons.location_on_outlined,
+                        color: Colors.white30,
+                        size: 11,
+                      ),
+                      SizedBox(width: 2),
                       Text(
-                        '$greeting,',
-                        style: const TextStyle(
-                          color: Colors.white60,
-                          fontSize: 13,
+                        'Luxor, Egypt',
+                        style: TextStyle(
+                          color: Colors.white30,
+                          fontSize: 10,
                         ),
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        _guideName,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 26,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: -0.5,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      // Certified Guide badge
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 5,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.goldDim,
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: AppColors.borderGold),
-                        ),
-                        child: const Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.verified_rounded,
-                              color: AppColors.gold,
-                              size: 12,
-                            ),
-                            SizedBox(width: 4),
-                            Text(
-                              'Certified Guide',
-                              style: TextStyle(
-                                color: AppColors.gold,
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-
-                      const SizedBox(height: 12),
-
-                      // Revenue pill
-                      if (_totalRevenue > 0)
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.black38,
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(
-                              color: Colors.white.withValues(alpha: 0.15),
-                            ),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(
-                                Icons.attach_money_rounded,
-                                color: AppColors.gold,
-                                size: 14,
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                '\$${_totalRevenue.toStringAsFixed(0)} revenue',
-                                style: const TextStyle(
-                                  color: Colors.white70,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
                     ],
                   ),
+                ],
+              ),
+            ),
 
-                  // Right: Avatar
-                  GestureDetector(
-                    onTap: () => Navigator.pushNamed(context, '/profile'),
+            // Bell
+            GestureDetector(
+              onTap: () => Navigator.pushNamed(context, '/notifications'),
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Container(
+                    width: 38,
+                    height: 38,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: const Color(0xFF181410),
+                      border: Border.all(color: const Color(0xFF2A2418)),
+                    ),
+                    child: const Icon(
+                      Icons.notifications_outlined,
+                      color: AppColors.gold,
+                      size: 20,
+                    ),
+                  ),
+                  Positioned(
+                    top: -2,
+                    right: -2,
                     child: Container(
-                      width: 52,
-                      height: 52,
+                      width: 10,
+                      height: 10,
                       decoration: BoxDecoration(
+                        color: AppColors.gold,
                         shape: BoxShape.circle,
-                        border: Border.all(color: AppColors.gold, width: 2),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.gold.withValues(alpha: 0.3),
-                            blurRadius: 14,
-                          ),
-                        ],
-                      ),
-                      child: ClipOval(
-                        child:
-                            _guideImage.isNotEmpty &&
-                                _guideImage.startsWith('http')
-                            ? Image.network(
-                                _guideImage,
-                                fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) => const Icon(
-                                  Icons.person,
-                                  color: Colors.white54,
-                                ),
-                              )
-                            : Image.asset(
-                                AppAssets.sarah,
-                                fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) => const Icon(
-                                  Icons.person,
-                                  color: Colors.white54,
-                                ),
-                              ),
+                        border: Border.all(
+                          color: AppColors.bgDark,
+                          width: 1.5,
+                        ),
                       ),
                     ),
                   ),
                 ],
               ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _avatarFallback() {
+    return Container(
+      color: const Color(0xFF2A2418),
+      child: const Icon(Icons.person, color: AppColors.gold, size: 22),
+    );
+  }
+
+  // ════════════════════════════════════════════════════════
+  // HERO CARD  (revenue + Top Up + New Tour + Bookings)
+  // ════════════════════════════════════════════════════════
+  Widget _buildHeroCard() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: const Color(0xFF181410),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.borderGold),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Revenue row
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Total Revenue',
+                    style: TextStyle(
+                      color: Colors.white38,
+                      fontSize: 11,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      Text(
+                        '\$${_totalRevenue.toStringAsFixed(0)}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 30,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      const Icon(
+                        Icons.remove_red_eye_outlined,
+                        color: Colors.white24,
+                        size: 18,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              GestureDetector(
+                onTap: () => Navigator.pushNamed(context, '/my-payments'),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 9,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.gold,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: const Text(
+                    'Top Up',
+                    style: TextStyle(
+                      color: Colors.black,
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 18),
+
+          // Action buttons
+          Row(
+            children: [
+              Expanded(
+                child: _heroActionBtn(
+                  icon: Icons.add_circle_outline_rounded,
+                  label: 'New Tour',
+                  onTap: () => Navigator.pushNamed(context, '/create-tour'),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _heroActionBtn(
+                  icon: Icons.book_online_outlined,
+                  label: 'Bookings',
+                  onTap: () => Navigator.pushNamed(context, '/my-bookings'),
+                ),
+              ),
+            ],
           ),
         ],
       ),
     );
   }
 
-  // ════════════════════════════════════════════════════════════
-  // STATS GRID
-  // ════════════════════════════════════════════════════════════
-
-  Widget _buildStatsGrid() {
-    final stats = [
-      {
-        'label': 'Total Tours',
-        'value': _totalTours.toString(),
-        'icon': Icons.map_rounded,
-        'color': AppColors.gold,
-      },
-      {
-        'label': 'Active Tours',
-        'value': _activeTours.toString(),
-        'icon': Icons.play_circle_rounded,
-        'color': Colors.green,
-      },
-      {
-        'label': 'Pending',
-        'value': _pendingRequests.toString(),
-        'icon': Icons.pending_rounded,
-        'color': Colors.orange,
-      },
-      {
-        'label': 'Approved',
-        'value': _approvedBookings.toString(),
-        'icon': Icons.check_circle_rounded,
-        'color': Colors.teal,
-      },
-    ];
-
-    if (_isLoadingStats || _isLoadingTours) {
-      return GridView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          crossAxisSpacing: 12,
-          mainAxisSpacing: 12,
-          childAspectRatio: 1.6,
+  Widget _heroActionBtn({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 13),
+        decoration: BoxDecoration(
+          color: const Color(0xFF242118),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: const Color(0xFF3A3220)),
         ),
-        itemCount: 4,
-        itemBuilder: (_, __) => Container(
-          decoration: BoxDecoration(
-            color: AppColors.bgCard,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.border),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, color: AppColors.gold, size: 18),
+            const SizedBox(width: 7),
+            Text(
+              label,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ════════════════════════════════════════════════════════
+  // SEARCH BAR
+  // ════════════════════════════════════════════════════════
+  Widget _buildSearchBar() {
+    return Row(
+      children: [
+        Expanded(
+          child: GestureDetector(
+            onTap: () => Navigator.pushNamed(context, '/guide-tours'),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
+              decoration: BoxDecoration(
+                color: const Color(0xFF181410),
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: const Color(0xFF2A2418)),
+              ),
+              child: Row(
+                children: const [
+                  Icon(Icons.search, color: Color(0xFF4A4030), size: 18),
+                  SizedBox(width: 8),
+                  Text(
+                    'Search Tours',
+                    style: TextStyle(color: Color(0xFF3A3020), fontSize: 13),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 10),
+        GestureDetector(
+          onTap: () => Navigator.pushNamed(context, '/guide-tours'),
+          child: Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: AppColors.gold,
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.tune_rounded,
+              color: Colors.black,
+              size: 20,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ════════════════════════════════════════════════════════
+  // CURRENT TOUR  (progress tracker card)
+  // ════════════════════════════════════════════════════════
+  Widget _buildCurrentTour() {
+    final activeTour = _myTours.firstWhere(
+      (t) => t['status'] == 'active' || t['status'] == 'published',
+      orElse: () => {},
+    );
+
+    if (_isLoadingTours) return _shimmerCard(height: 140);
+
+    if (activeTour.isEmpty) {
+      return _emptyCard(
+        icon: Icons.map_outlined,
+        message: 'No active tour — create one!',
+      );
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF181410),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFF2A2418)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ID row + badge
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Tour ID:',
+                    style: TextStyle(color: Colors.white38, fontSize: 10),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'AMN-${activeTour['id'] ?? '001'}',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+              _statusBadge('Active'),
+            ],
+          ),
+          const SizedBox(height: 14),
+
+          // From / To
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Tour:',
+                    style: TextStyle(color: Colors.white38, fontSize: 10),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    activeTour['title'] ?? '',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 1),
+                  Text(
+                    activeTour['location'] ?? '',
+                    style: const TextStyle(
+                      color: Colors.white30,
+                      fontSize: 10,
+                    ),
+                  ),
+                ],
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  const Text(
+                    'Duration:',
+                    style: TextStyle(color: Colors.white38, fontSize: 10),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '${activeTour['duration']}D',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  Text(
+                    '\$${activeTour['price']}',
+                    style: const TextStyle(
+                      color: AppColors.gold,
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // Progress bar
+          _buildProgressBar(step: 1),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProgressBar({required int step}) {
+    final labels = ['Created', 'Active', 'Completed'];
+    final times = ['10:00am', 'Now', '--'];
+
+    return Column(
+      children: [
+        Stack(
+          alignment: Alignment.center,
+          children: [
+            // Track
+            Container(
+              height: 3,
+              decoration: BoxDecoration(
+                color: const Color(0xFF2A2418),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            // Fill
+            Align(
+              alignment: Alignment.centerLeft,
+              child: FractionallySizedBox(
+                widthFactor: step == 0
+                    ? 0.05
+                    : step == 1
+                        ? 0.5
+                        : 1.0,
+                child: Container(
+                  height: 3,
+                  decoration: BoxDecoration(
+                    color: AppColors.gold,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+            ),
+            // Dots
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: List.generate(3, (i) {
+                final done = i <= step;
+                final active = i == step;
+                return Container(
+                  width: 14,
+                  height: 14,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: done
+                        ? AppColors.gold
+                        : const Color(0xFF2A2418),
+                    border: Border.all(
+                      color: done
+                          ? AppColors.gold
+                          : const Color(0xFF3A3220),
+                      width: 2,
+                    ),
+                    boxShadow: active
+                        ? [
+                            BoxShadow(
+                              color: AppColors.gold.withValues(alpha: 0.2),
+                              blurRadius: 6,
+                              spreadRadius: 2,
+                            ),
+                          ]
+                        : null,
+                  ),
+                );
+              }),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: List.generate(3, (i) {
+            return Column(
+              children: [
+                Text(
+                  labels[i],
+                  style: TextStyle(
+                    color: i <= step ? Colors.white38 : const Color(0xFF3A3020),
+                    fontSize: 10,
+                  ),
+                ),
+                const SizedBox(height: 1),
+                Text(
+                  times[i],
+                  style: TextStyle(
+                    color: i <= step
+                        ? const Color(0xFF4A4030)
+                        : const Color(0xFF2A2018),
+                    fontSize: 9,
+                  ),
+                ),
+              ],
+            );
+          }),
+        ),
+      ],
+    );
+  }
+
+  // ════════════════════════════════════════════════════════
+  // RECENT REQUESTS
+  // ════════════════════════════════════════════════════════
+  Widget _buildRecentRequests() {
+    if (_isLoadingBookings) {
+      return Column(
+        children: List.generate(
+          2,
+          (_) => Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: _shimmerCard(height: 72),
           ),
         ),
       );
     }
 
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-        childAspectRatio: 1.6,
-      ),
-      itemCount: stats.length,
-      itemBuilder: (_, i) {
-        final color = stats[i]['color'] as Color;
-        return Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: AppColors.bgCard,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: color.withValues(alpha: 0.3)),
-            boxShadow: [
-              BoxShadow(color: color.withValues(alpha: 0.05), blurRadius: 10),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(
-                  stats[i]['icon'] as IconData,
-                  color: color,
-                  size: 20,
-                ),
-              ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    stats[i]['value'] as String,
-                    style: TextStyle(
-                      color: color,
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  Text(
-                    stats[i]['label'] as String,
-                    style: const TextStyle(color: Colors.white38, fontSize: 11),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  // ════════════════════════════════════════════════════════════
-  // CREATE TOUR BUTTON
-  // ════════════════════════════════════════════════════════════
-
-  Widget _buildCreateTourBtn(BuildContext context) {
-    return GestureDetector(
-      onTap: () => Navigator.pushNamed(context, '/create-tour'),
-      child: Container(
-        padding: const EdgeInsets.all(18),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(18),
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [AppColors.gold, AppColors.gold.withValues(alpha: 0.75)],
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.gold.withValues(alpha: 0.35),
-              blurRadius: 20,
-              offset: const Offset(0, 8),
-            ),
-          ],
-        ),
-        child: const Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.add_circle_rounded, color: Colors.black, size: 24),
-            SizedBox(width: 10),
-            Text(
-              'Create New Tour',
-              style: TextStyle(
-                color: Colors.black,
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 0.3,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // ════════════════════════════════════════════════════════════
-  // QUICK ACTIONS
-  // ════════════════════════════════════════════════════════════
-
-  Widget _buildQuickActions(BuildContext context) {
-    final actions = [
-      {
-        'icon': Icons.map_outlined,
-        'label': 'My Tours',
-        'route': '',
-        'color': AppColors.gold,
-      },
-      {
-        'icon': Icons.book_online_outlined,
-        'label': 'Bookings',
-        'route': '',
-        'color': Colors.orange,
-      },
-      {
-        'icon': Icons.message_outlined,
-        'label': 'Messages',
-        'route': '',
-        'color': Colors.teal,
-      },
-      {
-        'icon': Icons.person_outline,
-        'label': 'Profile',
-        'route': '/profile',
-        'color': Colors.blue,
-      },
-    ];
+    if (_recentBookings.isEmpty) {
+      return _emptyCard(
+        icon: Icons.book_online_outlined,
+        message: 'No booking requests yet',
+      );
+    }
 
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _sectionTitle('Quick Actions'),
-        const SizedBox(height: 14),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: actions.map((a) {
-            final color = a['color'] as Color;
-            return GestureDetector(
-              onTap: () {
-                final route = a['route'] as String;
-                if (route.isNotEmpty) {
-                  Navigator.pushNamed(context, route);
-                }
-              },
-              child: Column(
-                children: [
-                  Container(
-                    width: 60,
-                    height: 60,
-                    decoration: BoxDecoration(
-                      color: color.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(18),
-                      border: Border.all(color: color.withValues(alpha: 0.3)),
-                    ),
-                    child: Icon(a['icon'] as IconData, color: color, size: 26),
-                  ),
-                  const SizedBox(height: 7),
-                  Text(
-                    a['label'] as String,
-                    style: const TextStyle(
-                      color: Colors.white60,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-              ),
-            );
-          }).toList(),
-        ),
-      ],
+      children: _recentBookings.map((b) => _requestItem(b)).toList(),
     );
   }
 
-  // ════════════════════════════════════════════════════════════
-  // RECENT BOOKINGS
-  // ════════════════════════════════════════════════════════════
-
-  Widget _buildRecentBookings(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            _sectionTitle('Recent Requests'),
-            GestureDetector(
-              onTap: () {},
-              child: const Row(
-                children: [
-                  Text(
-                    'See all',
-                    style: TextStyle(
-                      color: AppColors.gold,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  SizedBox(width: 3),
-                  Icon(
-                    Icons.arrow_forward_ios_rounded,
-                    color: AppColors.gold,
-                    size: 11,
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 14),
-        if (_isLoadingBookings)
-          ...List.generate(
-            2,
-            (_) => Container(
-              margin: const EdgeInsets.only(bottom: 10),
-              height: 72,
-              decoration: BoxDecoration(
-                color: AppColors.bgCard,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: AppColors.border),
-              ),
-            ),
-          )
-        else if (_recentBookings.isEmpty)
-          _emptyState(
-            icon: Icons.book_online_outlined,
-            message: 'No booking requests yet',
-          )
-        else
-          ..._recentBookings.map((b) => _bookingItem(b)),
-      ],
-    );
-  }
-
-  Widget _bookingItem(Map<String, dynamic> booking) {
-    final status = booking['status'] as String;
-    final statusColor = status == 'approved'
-        ? Colors.green
-        : status == 'pending'
-        ? Colors.orange
-        : Colors.red;
+  Widget _requestItem(Map<String, dynamic> b) {
+    final status = b['status'] as String;
+    final isApproved = status == 'approved';
+    final isPending = status == 'pending';
+    final statusColor = isApproved
+        ? const Color(0xFF28B464)
+        : isPending
+            ? const Color(0xFFDC8C1E)
+            : const Color(0xFFE24B4A);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
-        color: AppColors.bgCard,
+        color: const Color(0xFF181410),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: const Color(0xFF2A2418)),
       ),
       child: Row(
         children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: statusColor.withValues(alpha: 0.1),
-              shape: BoxShape.circle,
-              border: Border.all(color: statusColor.withValues(alpha: 0.3)),
-            ),
-            child: Icon(Icons.person_rounded, color: statusColor, size: 20),
-          ),
-          const SizedBox(width: 12),
+          // Left: ID + status
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                const Text(
+                  'Booking ID:',
+                  style: TextStyle(color: Colors.white30, fontSize: 10),
+                ),
+                const SizedBox(height: 2),
                 Text(
-                  booking['tourist'] ?? '',
+                  'BK-${b['id'] ?? '000'}',
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                const SizedBox(height: 3),
-                Text(
-                  booking['tour'] ?? '',
-                  style: const TextStyle(color: Colors.white38, fontSize: 12),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: statusColor,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 5),
+                    Text(
+                      status[0].toUpperCase() + status.substring(1),
+                      style: TextStyle(
+                        color: statusColor,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
           ),
+
+          // Right: Tour + date
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: statusColor.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: statusColor.withValues(alpha: 0.3)),
-                ),
-                child: Text(
-                  status.toUpperCase(),
-                  style: TextStyle(
-                    color: statusColor,
-                    fontSize: 9,
-                    fontWeight: FontWeight.bold,
-                  ),
+              const Text(
+                'Tour:',
+                style: TextStyle(color: Colors.white30, fontSize: 10),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                b['tour'] ?? '',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: 6),
               Text(
-                '${booking['participants']} pax',
-                style: const TextStyle(color: Colors.white38, fontSize: 11),
+                b['date'] ?? '',
+                style: const TextStyle(
+                  color: Colors.white30,
+                  fontSize: 10,
+                ),
               ),
             ],
           ),
@@ -784,97 +876,78 @@ class _GuideDashboardScreenState extends State<GuideDashboardScreen>
     );
   }
 
-  // ════════════════════════════════════════════════════════════
-  // MY TOURS
-  // ════════════════════════════════════════════════════════════
-
-  Widget _buildMyTours(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            _sectionTitle('My Tours'),
-            GestureDetector(
-              onTap: () {},
-              child: const Row(
-                children: [
-                  Text(
-                    'See all',
-                    style: TextStyle(
-                      color: AppColors.gold,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  SizedBox(width: 3),
-                  Icon(
-                    Icons.arrow_forward_ios_rounded,
-                    color: AppColors.gold,
-                    size: 11,
-                  ),
-                ],
-              ),
-            ),
-          ],
+  // ════════════════════════════════════════════════════════
+  // MY TOURS LIST
+  // ════════════════════════════════════════════════════════
+  Widget _buildMyToursList() {
+    if (_isLoadingTours) {
+      return Column(
+        children: List.generate(
+          2,
+          (_) => Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: _shimmerCard(height: 80),
+          ),
         ),
-        const SizedBox(height: 14),
-        if (_isLoadingTours)
-          ...List.generate(
-            2,
-            (_) => Container(
-              margin: const EdgeInsets.only(bottom: 10),
-              height: 80,
-              decoration: BoxDecoration(
-                color: AppColors.bgCard,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: AppColors.border),
-              ),
-            ),
-          )
-        else if (_myTours.isEmpty)
-          _emptyState(
-            icon: Icons.map_outlined,
-            message: 'No tours yet — create your first tour!',
-          )
-        else
-          ..._myTours.map((t) => _tourItem(t, context)),
-      ],
-    );
+      );
+    }
+
+    if (_myTours.isEmpty) {
+      return _emptyCard(
+        icon: Icons.map_outlined,
+        message: 'No tours yet — create your first!',
+      );
+    }
+
+    return Column(children: _myTours.map((t) => _tourItem(t)).toList());
   }
 
-  Widget _tourItem(Map<String, dynamic> tour, BuildContext context) {
+  Widget _tourItem(Map<String, dynamic> tour) {
     final status = tour['status'] as String;
     final isActive = status == 'active' || status == 'published';
 
-    return Container(
+    return GestureDetector(
+      onTap: () => Navigator.pushNamed(
+        context,
+        '/edit-tour',
+        arguments: tour,
+      ),
+      child: Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColors.bgCard,
+        color: const Color(0xFF181410),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isActive ? AppColors.borderGold : AppColors.border,
+          color: isActive ? AppColors.borderGold : const Color(0xFF2A2418),
         ),
       ),
       child: Row(
         children: [
+          // Icon
           Container(
             width: 44,
             height: 44,
             decoration: BoxDecoration(
-              color: AppColors.goldDim,
+              color: isActive
+                  ? AppColors.goldDim
+                  : const Color(0xFF1A1810),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.borderGold),
+              border: Border.all(
+                color: isActive
+                    ? AppColors.borderGold
+                    : const Color(0xFF2A2418),
+              ),
             ),
-            child: const Icon(
+            child: Icon(
               Icons.map_rounded,
-              color: AppColors.gold,
+              color: isActive ? AppColors.gold : const Color(0xFF5A5040),
               size: 22,
             ),
           ),
           const SizedBox(width: 12),
+
+          // Info
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -889,33 +962,33 @@ class _GuideDashboardScreenState extends State<GuideDashboardScreen>
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: 3),
+                const SizedBox(height: 4),
                 Row(
                   children: [
                     const Icon(
                       Icons.location_on_outlined,
-                      color: Colors.white38,
+                      color: Colors.white30,
                       size: 11,
                     ),
-                    const SizedBox(width: 3),
+                    const SizedBox(width: 2),
                     Text(
                       tour['location'] ?? '',
                       style: const TextStyle(
-                        color: Colors.white38,
+                        color: Colors.white30,
                         fontSize: 11,
                       ),
                     ),
                     const SizedBox(width: 8),
                     const Icon(
                       Icons.schedule_outlined,
-                      color: Colors.white38,
+                      color: Colors.white30,
                       size: 11,
                     ),
-                    const SizedBox(width: 3),
+                    const SizedBox(width: 2),
                     Text(
                       '${tour['duration']}D',
                       style: const TextStyle(
-                        color: Colors.white38,
+                        color: Colors.white30,
                         fontSize: 11,
                       ),
                     ),
@@ -924,6 +997,8 @@ class _GuideDashboardScreenState extends State<GuideDashboardScreen>
               ],
             ),
           ),
+
+          // Price + status
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
@@ -937,17 +1012,20 @@ class _GuideDashboardScreenState extends State<GuideDashboardScreen>
               ),
               const SizedBox(height: 4),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
                   color: isActive
-                      ? Colors.green.withValues(alpha: 0.1)
-                      : AppColors.bgInput,
+                      ? const Color(0xFF28B46420)
+                      : const Color(0xFF2A2418),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
                   status.toUpperCase(),
                   style: TextStyle(
-                    color: isActive ? Colors.green : Colors.white38,
+                    color: isActive
+                        ? const Color(0xFF28B464)
+                        : Colors.white30,
                     fontSize: 9,
                     fontWeight: FontWeight.bold,
                   ),
@@ -957,55 +1035,134 @@ class _GuideDashboardScreenState extends State<GuideDashboardScreen>
           ),
         ],
       ),
+    ),
+  );
+  }
+
+  // ════════════════════════════════════════════════════════
+  // HELPERS — closing GestureDetector added above in _tourItem
+  // ════════════════════════════════════════════════════════
+
+  Widget _buildSectionTitle(String title) {
+    return Text(
+      title,
+      style: const TextStyle(
+        color: Colors.white,
+        fontSize: 14,
+        fontWeight: FontWeight.bold,
+      ),
     );
   }
 
-  // ════════════════════════════════════════════════════════════
-  // HELPERS
-  // ════════════════════════════════════════════════════════════
-
-  Widget _sectionTitle(String text) {
+  Widget _buildSectionHeader({
+    required String title,
+    required VoidCallback onSeeAll,
+  }) {
     return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Container(
-          width: 3,
-          height: 16,
-          decoration: BoxDecoration(
-            color: AppColors.gold,
-            borderRadius: BorderRadius.circular(2),
-          ),
-        ),
-        const SizedBox(width: 8),
         Text(
-          text,
+          title,
           style: const TextStyle(
             color: Colors.white,
-            fontSize: 16,
+            fontSize: 14,
             fontWeight: FontWeight.bold,
+          ),
+        ),
+        GestureDetector(
+          onTap: onSeeAll,
+          child: Row(
+            children: const [
+              Text(
+                'See all',
+                style: TextStyle(
+                  color: AppColors.gold,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              SizedBox(width: 2),
+              Icon(
+                Icons.arrow_forward_ios_rounded,
+                color: AppColors.gold,
+                size: 11,
+              ),
+            ],
           ),
         ),
       ],
     );
   }
 
-  Widget _emptyState({required IconData icon, required String message}) {
+  Widget _statusBadge(String label) {
+    Color bg;
+    Color fg;
+    Color border;
+
+    switch (label.toLowerCase()) {
+      case 'active':
+        bg = const Color(0xFF1EC86415);
+        fg = const Color(0xFF28B464);
+        border = const Color(0xFF28B46440);
+        break;
+      case 'pending':
+        bg = const Color(0xFFDC8C1E15);
+        fg = const Color(0xFFDC8C1E);
+        border = const Color(0xFFDC8C1E40);
+        break;
+      default:
+        bg = AppColors.goldDim;
+        fg = AppColors.gold;
+        border = AppColors.borderGold;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: border),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: fg,
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+
+  Widget _emptyCard({required IconData icon, required String message}) {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: AppColors.bgCard,
+        color: const Color(0xFF181410),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: const Color(0xFF2A2418)),
       ),
       child: Column(
         children: [
-          Icon(icon, color: Colors.white24, size: 36),
+          Icon(icon, color: const Color(0xFF3A3220), size: 34),
           const SizedBox(height: 10),
           Text(
             message,
-            style: const TextStyle(color: Colors.white38, fontSize: 13),
+            style: const TextStyle(color: Color(0xFF4A4030), fontSize: 13),
             textAlign: TextAlign.center,
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _shimmerCard({required double height}) {
+    return Container(
+      height: height,
+      decoration: BoxDecoration(
+        color: const Color(0xFF181410),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFF2A2418)),
       ),
     );
   }

@@ -2,7 +2,6 @@
 import 'package:flutter/material.dart';
 
 // Core
-import 'core/constants/app_colors.dart';
 import 'core/constants/app_theme.dart';
 
 // Auth
@@ -19,7 +18,6 @@ import 'screens/tourist/profile_screen.dart';
 import 'screens/tourist/notifications_screen.dart';
 import 'screens/tourist/edit_profile_screen.dart';
 import 'screens/tourist/saved_places_screen.dart';
-import 'screens/guide/guide_main_navigation.dart';
 
 // Explore
 import 'screens/explore/explore_screen.dart';
@@ -40,7 +38,6 @@ import 'screens/payment/payment_failed_screen.dart';
 // Admin
 import 'screens/admin/admin_dashboard_screen.dart';
 import 'screens/admin/approve_payments_screen.dart';
-import 'screens/admin/create_new_tour_screen.dart';
 import 'screens/admin/manage_tours_screen.dart';
 import 'screens/admin/manage_users_screen.dart';
 
@@ -50,6 +47,8 @@ import 'screens/general/post_details_screen.dart';
 import 'screens/general/about_Us_screen.dart';
 
 import 'screens/guide/guide_tours_screen.dart';
+import 'screens/guide/guide_main_navigation.dart';
+import 'screens/guide/guide_tour_form_screen.dart';
 
 import 'screens/booking/booking_summary_screen.dart';
 import 'screens/booking/booking_confirmed_screen.dart';
@@ -107,7 +106,12 @@ class AmunGuideApp extends StatelessWidget {
 
         '/admin': (ctx) => const AdminDashboardScreen(),
         '/approve-payments': (ctx) => const ApprovePaymentsScreen(),
-        '/create-tour': (ctx) => const CreateNewTourScreen(),
+        '/create-tour': (ctx) => const GuideTourFormScreen(),
+
+'/edit-tour': (ctx) {
+  final tour = ModalRoute.of(ctx)?.settings.arguments as Map<String, dynamic>?;
+  return GuideTourFormScreen(tour: tour);
+},
         '/manage-tours': (ctx) => const ManageToursScreen(),
         '/manage-users': (ctx) => const ManageUsersScreen(),
 
