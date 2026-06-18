@@ -5,6 +5,8 @@ import '../../core/constants/app_assets.dart';
 import '../../core/services/dio_client.dart';
 import '../../core/services/tours_service.dart';
 import '../../core/services/places_service.dart';
+import '../../core/services/likes_service.dart';
+
 import '../../core/services/tour_booking_service.dart';
 import '../../core/widgets/animated_page_wrapper.dart';
 import 'dart:typed_data';
@@ -42,6 +44,9 @@ class _DashboardScreenState extends State<DashboardScreen>
   List<Map<String, dynamic>> _places = [];
   bool _isLoadingPlaces = true;
 
+  List<Map<String, dynamic>> _savedPlaces = [];
+  bool _isLoadingSaved = true;
+
   // ── Upcoming Trip ───────────────────────────────────────────
   Map<String, dynamic>? _upcomingTrip;
   bool _isLoadingTrip = true;
@@ -59,6 +64,7 @@ class _DashboardScreenState extends State<DashboardScreen>
   final _toursService = ToursService();
   final _placesService = PlacesService();
   final _bookingService = TourBookingService();
+  final _likesService = LikesService();
 
   // ── Animation ───────────────────────────────────────────────
   late final AnimationController _fadeCtrl;
@@ -78,9 +84,11 @@ class _DashboardScreenState extends State<DashboardScreen>
     );
     _fadeAnim = CurvedAnimation(parent: _fadeCtrl, curve: Curves.easeOut);
     _fadeCtrl.forward();
+    _loadUserData();
     _loadTours();
     _loadPlaces();
     _loadUpcomingTrip();
+    _loadSavedPlaces();
   }
 
   @override
@@ -102,6 +110,7 @@ class _DashboardScreenState extends State<DashboardScreen>
 
   Future<void> _loadUserData() async {
     final data = await DioClient.getUserData();
+    print('👤 User data loaded: $data');
     if (mounted) {
       setState(() {
         _userName = data['name']?.toString().split(' ').first ?? 'Explorer';
@@ -111,6 +120,40 @@ class _DashboardScreenState extends State<DashboardScreen>
         }
         _points = data['points'] ?? 0;
       });
+    }
+  }
+
+  Future<void> _loadSavedPlaces() async {
+    try {
+      final response = await _likesService.getUserLikes();
+      final data = response.data;
+      final List items = data['data'] ?? [];
+      final placesService = PlacesService();
+      final List<Map<String, dynamic>> results = [];
+      final images = [AppAssets.siwa, AppAssets.nileSunset, AppAssets.valley];
+      for (int i = 0; i < items.length; i++) {
+        final like = items[i];
+        final int placeId = like['likeable_id'];
+        try {
+          final placeResponse = await placesService.getPlace(placeId);
+          final p = placeResponse.data['data'] ?? placeResponse.data ?? {};
+          results.add({
+            'id': p['id'] ?? placeId,
+            'img': images[i % images.length],
+            'name': p['title'] ?? p['name'] ?? 'Saved Item',
+            'loc': p['location'] ?? 'Egypt',
+            'rating': (p['rating'] ?? 0).toString(),
+            'price': '\$${p['ticket_price'] ?? p['price'] ?? 0}',
+          });
+        } catch (e) {
+          debugPrint('Error loading place $placeId: $e');
+        }
+      }
+      if (mounted) setState(() => _savedPlaces = results);
+    } catch (e) {
+      debugPrint('Error loading saved places: $e');
+    } finally {
+      if (mounted) setState(() => _isLoadingSaved = false);
     }
   }
 
@@ -862,7 +905,7 @@ class _DashboardScreenState extends State<DashboardScreen>
   // S2 — FEATURED DESTINATIONS  (Portrait Cards — 2 col grid)
   // ════════════════════════════════════════════════════════════
   Widget _buildSavedPlaces(BuildContext context) {
-    if (_places.isEmpty) return const SizedBox.shrink();
+    if (_savedPlaces.isEmpty) return const SizedBox.shrink();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -889,7 +932,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                     radius: 10,
                     backgroundColor: AppColors.gold,
                     child: Text(
-                      '${_places.length}',
+                      '${_savedPlaces.length}',
                       style: const TextStyle(
                         color: Colors.black,
                         fontSize: 10,
@@ -932,10 +975,10 @@ class _DashboardScreenState extends State<DashboardScreen>
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 20),
-            itemCount: _places.length,
+            itemCount: _savedPlaces.length,
             separatorBuilder: (_, __) => const SizedBox(width: 14),
             itemBuilder: (_, i) {
-              final place = _places[i];
+              final place = _savedPlaces[i];
               return GestureDetector(
                 onTap: () => Navigator.pushNamed(
                   context,

@@ -6,6 +6,7 @@ import '../../core/constants/app_colors.dart';
 import '../../core/services/tours_service.dart';
 import '../../core/constants/app_assets.dart';
 import '../explore/map_screen.dart';
+import 'tourist_guide_chat_screen.dart'; // ← التعديل الوحيد في الـ imports
 
 class TourDetailsScreen extends StatefulWidget {
   const TourDetailsScreen({super.key});
@@ -33,7 +34,6 @@ class _TourDetailsScreenState extends State<TourDetailsScreen>
   Map<String, dynamic> _guide = {};
   List<Map<String, dynamic>> _places = [];
 
-  // Gallery thumbnails — بنبني من الـ places أو fallback
   List<String> _galleryImages = [];
 
   late AnimationController _contentController;
@@ -167,7 +167,6 @@ class _TourDetailsScreenState extends State<TourDetailsScreen>
       }
     }
 
-    // بناء الـ gallery من الـ places أو fallback images
     _galleryImages = _places.isNotEmpty
         ? _places.take(4).map((p) => p['img']?.toString() ?? '').toList()
         : _fallbackImages.take(4).toList();
@@ -242,10 +241,8 @@ class _TourDetailsScreenState extends State<TourDetailsScreen>
       backgroundColor: AppColors.bgCard,
       body: Stack(
         children: [
-          // ── Scrollable content ──────────────────────────
           CustomScrollView(
             slivers: [
-              // ── Hero image + gallery ────────────────────
               SliverToBoxAdapter(
                 child: SizedBox(
                   height: screenSize.height * 0.55,
@@ -260,7 +257,6 @@ class _TourDetailsScreenState extends State<TourDetailsScreen>
                           child: _buildImg(_image),
                         ),
                       ),
-                      // Gradient overlay على الصورة الرئيسية
                       Positioned(
                         bottom: 0,
                         left: 0,
@@ -282,7 +278,6 @@ class _TourDetailsScreenState extends State<TourDetailsScreen>
                           ),
                         ),
                       ),
-                      // Gallery thumbnails — فوق بعض على يمين الصورة
                       Positioned(
                         top: 0,
                         right: 12,
@@ -324,8 +319,6 @@ class _TourDetailsScreenState extends State<TourDetailsScreen>
                           ],
                         ),
                       ),
-
-                      // Back button
                       Positioned(
                         top: MediaQuery.of(context).padding.top + 10,
                         left: 16,
@@ -353,8 +346,6 @@ class _TourDetailsScreenState extends State<TourDetailsScreen>
                           ),
                         ),
                       ),
-
-                      // Heart button
                       Positioned(
                         top: MediaQuery.of(context).padding.top + 10,
                         right: 16,
@@ -398,8 +389,6 @@ class _TourDetailsScreenState extends State<TourDetailsScreen>
                           ),
                         ),
                       ),
-
-                      // Title + location على الصورة (أسفل يسار)
                       Positioned(
                         bottom: 20,
                         left: 20,
@@ -448,8 +437,6 @@ class _TourDetailsScreenState extends State<TourDetailsScreen>
                   ),
                 ),
               ),
-
-              // ── Bottom content card ─────────────────────
               SliverToBoxAdapter(
                 child: FadeTransition(
                   opacity: _contentFade,
@@ -462,14 +449,10 @@ class _TourDetailsScreenState extends State<TourDetailsScreen>
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // ── Stats row ───────────────────
                           _buildStatsRow(),
-
                           const SizedBox(height: 24),
                           _buildDivider(),
                           const SizedBox(height: 24),
-
-                          // ── Guide card ──────────────────
                           if (_guide.isNotEmpty) ...[
                             _buildSectionTitle('Your Guide'),
                             const SizedBox(height: 14),
@@ -478,17 +461,12 @@ class _TourDetailsScreenState extends State<TourDetailsScreen>
                             _buildDivider(),
                             const SizedBox(height: 24),
                           ],
-
-                          // ── Description ─────────────────
                           _buildSectionTitle('Description'),
                           const SizedBox(height: 12),
                           _buildDescription(),
-
                           const SizedBox(height: 24),
                           _buildDivider(),
                           const SizedBox(height: 24),
-
-                          // ── Places ───────────────────────
                           if (_places.isNotEmpty) ...[
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -546,8 +524,6 @@ class _TourDetailsScreenState extends State<TourDetailsScreen>
               ),
             ],
           ),
-
-          // ── Bottom Bar (Price + Join) ────────────────────
           Positioned(
             bottom: 0,
             left: 0,
@@ -564,7 +540,6 @@ class _TourDetailsScreenState extends State<TourDetailsScreen>
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  // Price
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
@@ -587,11 +562,8 @@ class _TourDetailsScreenState extends State<TourDetailsScreen>
                       ),
                     ],
                   ),
-
-                  // Join button — دايري كبير زي الصورة
                   Row(
                     children: [
-                      // Upload receipt
                       GestureDetector(
                         onTap: () =>
                             Navigator.pushNamed(context, '/my-bookings'),
@@ -620,7 +592,6 @@ class _TourDetailsScreenState extends State<TourDetailsScreen>
                         ),
                       ),
                       const SizedBox(width: 12),
-                      // Join tour — big circle button
                       GestureDetector(
                         onTap: _openBookingSummary,
                         child: Container(
@@ -655,7 +626,6 @@ class _TourDetailsScreenState extends State<TourDetailsScreen>
     );
   }
 
-  // ── Stats row (Distance · Temp · Rating) ─────────────────
   Widget _buildStatsRow() {
     return Row(
       children: [
@@ -702,7 +672,6 @@ class _TourDetailsScreenState extends State<TourDetailsScreen>
     color: Colors.black.withValues(alpha: 0.08),
   );
 
-  // ── Description ──────────────────────────────────────────
   Widget _buildDescription() {
     final text = _description.isNotEmpty
         ? _description
@@ -837,17 +806,33 @@ class _TourDetailsScreenState extends State<TourDetailsScreen>
             ),
           ),
           const SizedBox(width: 8),
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: AppColors.gold,
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.chat_bubble_outline_rounded,
-              color: Colors.white,
-              size: 18,
+
+          // ── زرار الماسدج المفعّل ──────────────────────
+          GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => TouristGuideChatScreen(
+                    guideId: _guide['id'] ?? 0,
+                    guideName: guideName,
+                    tourName: _title,
+                  ),
+                ),
+              );
+            },
+            child: Container(
+              width: 40,
+              height: 40,
+              decoration: const BoxDecoration(
+                color: AppColors.gold,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.chat_bubble_outline_rounded,
+                color: Colors.white,
+                size: 18,
+              ),
             ),
           ),
         ],
@@ -860,7 +845,6 @@ class _TourDetailsScreenState extends State<TourDetailsScreen>
     child: const Icon(Icons.person_rounded, color: AppColors.gold, size: 28),
   );
 
-  // ── Place item ────────────────────────────────────────────
   Widget _buildPlaceItem(Map<String, dynamic> place) {
     final img = place['img']?.toString() ?? '';
     final isNet = img.startsWith('http');
@@ -949,7 +933,6 @@ class _TourDetailsScreenState extends State<TourDetailsScreen>
     );
   }
 
-  // ── Helpers ───────────────────────────────────────────────
   Widget _buildSectionTitle(String title) => Text(
     title,
     style: const TextStyle(
@@ -962,7 +945,6 @@ class _TourDetailsScreenState extends State<TourDetailsScreen>
   Widget _buildDivider() =>
       Container(height: 1, color: Colors.black.withValues(alpha: 0.06));
 
-  // ── Skeleton ──────────────────────────────────────────────
   Widget _buildSkeleton() {
     return Scaffold(
       backgroundColor: AppColors.bgCard,

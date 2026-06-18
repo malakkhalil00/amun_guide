@@ -25,7 +25,6 @@ class _WelcomeScreenState extends State<WelcomeScreen>
   // ── Form controllers ───────────────────────────────
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _nationalIdController = TextEditingController();
 
   // ── State ──────────────────────────────────────────
   bool _obscurePassword = true;
@@ -67,7 +66,6 @@ class _WelcomeScreenState extends State<WelcomeScreen>
     _animController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
-    _nationalIdController.dispose();
     super.dispose();
   }
 
@@ -103,11 +101,9 @@ class _WelcomeScreenState extends State<WelcomeScreen>
   bool get _isGuide => _selectedRole == 1;
   String get _roleStr => _isGuide ? 'guide' : 'tourist';
 
-  // ── Login logic (محمي — نفس الـ login_screen الأصلي) ──
+  // ── Login logic ────────────────────────────────────
   Future<void> _login() async {
-    if (_emailController.text.isEmpty ||
-        _passwordController.text.isEmpty ||
-        (_isGuide && _nationalIdController.text.isEmpty)) {
+    if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
       _showSnackBar('Please fill in all fields', isError: true);
       return;
     }
@@ -124,10 +120,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
       if (token.toString().isNotEmpty) {
         await _handleRememberMe();
         await DioClient.saveToken(token.toString());
-        final backendRole = user['role']?.toString();
-        final finalRole = (backendRole != null && backendRole.isNotEmpty)
-            ? backendRole
-            : _roleStr;
+        final finalRole = _roleStr;
         await DioClient.saveUserData(
           name: user['name'] ?? '',
           email: user['email'] ?? _emailController.text.trim(),
@@ -243,13 +236,6 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                         Container(
                           width: 40,
                           height: 40,
-                          // decoration: BoxDecoration(
-                          //   color: Colors.white.withValues(alpha: 0.15),
-                          //   borderRadius: BorderRadius.circular(0),
-                          //   border: Border.all(
-                          //     color: Colors.white.withValues(alpha: 0.2),
-                          //   ),
-                          // ),
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(10),
                             child: Image.asset(
@@ -315,6 +301,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                   ),
 
                   const SizedBox(height: 20),
+
                   // ── Bottom card ─────────────────────────
                   Expanded(
                     child: SlideTransition(
@@ -370,11 +357,13 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                               ),
 
                               const SizedBox(height: 22),
+
+                              // ── Fields ──────────────────────
                               AutofillGroup(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    // ── Email ───────────────────────
+                                    // ── Email ─────────────────
                                     _FieldLabel('Email Address'),
                                     const SizedBox(height: 8),
                                     _InputField(
@@ -389,7 +378,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
 
                                     const SizedBox(height: 16),
 
-                                    // ── Password ────────────────────
+                                    // ── Password ──────────────
                                     _FieldLabel('Password'),
                                     const SizedBox(height: 8),
                                     _InputField(
@@ -397,7 +386,6 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                                       autofillHints: const [
                                         AutofillHints.password,
                                       ],
-
                                       hint: '••••••••',
                                       icon: Icons.lock_outline,
                                       obscure: _obscurePassword,
@@ -418,35 +406,12 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                                   ],
                                 ),
                               ),
-                              // ── National ID — Guide only ────
-                              AnimatedSize(
-                                duration: const Duration(milliseconds: 300),
-                                curve: Curves.easeInOut,
-                                child: _isGuide
-                                    ? Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          const SizedBox(height: 16),
-                                          _FieldLabel('National ID'),
-                                          const SizedBox(height: 8),
-                                          _InputField(
-                                            controller: _nationalIdController,
-                                            hint: 'Enter your national ID',
-                                            icon: Icons.badge_outlined,
-                                            keyboardType: TextInputType.number,
-                                          ),
-                                        ],
-                                      )
-                                    : const SizedBox.shrink(),
-                              ),
 
                               const SizedBox(height: 14),
 
                               // ── Remember Me + Forgot Password ─
                               Row(
                                 children: [
-                                  // Remember Me
                                   GestureDetector(
                                     onTap: () => setState(
                                       () => _rememberMe = !_rememberMe,
@@ -494,7 +459,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                                   ),
 
                                   const Spacer(),
-                                  // Forgot Password
+
                                   GestureDetector(
                                     onTap: () => Navigator.pushNamed(
                                       context,
@@ -553,11 +518,13 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                               // ── Sign Up link ────────────────
                               Center(
                                 child: GestureDetector(
-                                  onTap: () => Navigator.pushNamed(
-                                    context,
-                                    '/register',
-                                    arguments: {'role': _roleStr},
-                                  ),
+                                  onTap: () {
+                                    Navigator.pushNamed(
+                                      context,
+                                      '/register',
+                                      arguments: {'role': _roleStr},
+                                    );
+                                  },
                                   child: RichText(
                                     text: TextSpan(
                                       children: [
@@ -691,7 +658,6 @@ class _InputField extends StatelessWidget {
         obscureText: obscure,
         keyboardType: keyboardType,
         autofillHints: autofillHints,
-
         style: const TextStyle(
           color: Colors.white,
           fontSize: 14,

@@ -50,8 +50,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     final args = ModalRoute.of(context)?.settings.arguments;
+    print('📦 Args received: $args');
     if (args is Map<String, dynamic>) {
       _role = args['role'] ?? 'tourist';
+      print('🎭 Role set to: $_role');
     }
   }
 
@@ -91,10 +93,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       final user = data['user'] ?? data['data']?['user'] ?? {};
       if (token.toString().isNotEmpty) {
         await DioClient.saveToken(token.toString());
-        final backendRole = user['role']?.toString();
-        final finalRole = (backendRole != null && backendRole.isNotEmpty)
-            ? backendRole
-            : _role;
+        final finalRole = _role;
         await DioClient.saveUserData(
           name: user['name'] ?? _nameController.text.trim(),
           email: user['email'] ?? _emailController.text.trim(),

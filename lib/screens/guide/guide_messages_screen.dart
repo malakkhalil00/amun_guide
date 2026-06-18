@@ -2,7 +2,6 @@
 
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
-import '../../core/services/conversation_service.dart';
 import '../../core/services/dio_client.dart';
 
 class GuideMessagesScreen extends StatefulWidget {
@@ -13,10 +12,9 @@ class GuideMessagesScreen extends StatefulWidget {
 }
 
 class _GuideMessagesScreenState extends State<GuideMessagesScreen> {
-  final _service = ConversationService();
-
   List<Map<String, dynamic>> _conversations = [];
   bool _isLoading = true;
+  int _myGuideId = 0;
 
   @override
   void initState() {
@@ -26,26 +24,182 @@ class _GuideMessagesScreenState extends State<GuideMessagesScreen> {
 
   Future<void> _loadConversations() async {
     setState(() => _isLoading = true);
-    try {
-      final response = await _service.getMyConversations();
-      final data = response.data;
-      final List items = data['data'] ?? data ?? [];
-      if (mounted) {
-        setState(() {
-          _conversations = items.map<Map<String, dynamic>>((c) => {
-            'id': c['id'],
-            'title': c['title'] ?? c['context'] ?? 'Conversation',
-            'last_message': c['last_message'] ?? c['context'] ?? '',
-            'unread': c['unread_count'] ?? 0,
-            'updated_at': c['updated_at']?.toString().split('T').first ?? '',
-            'participant': c['tourist']?['name'] ?? c['user']?['name'] ?? 'Tourist',
-          }).toList();
-        });
-      }
-    } catch (e) {
-      debugPrint('Conversations error: $e');
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
+
+    final userData = await DioClient.getUserData();
+    _myGuideId = userData['user_id'] ?? 0;
+
+    await Future.delayed(const Duration(milliseconds: 600));
+
+    if (mounted) {
+      setState(() {
+        _conversations = [
+          {
+            'key': 'mock_1',
+            'tourist_id': '101',
+            'tourist_name': 'Ahmed Mostafa',
+            'last_message': '🎒 Ahmed has booked your tour "Luxor by Night".',
+            'last_time': '10:14',
+            'unread': 2,
+            'messages': [
+              {
+                'content':
+                    '🎒 Ahmed has booked your tour "Luxor by Night". Please confirm the details.',
+                'sender_id': 101,
+                'sender_name': 'Ahmed Mostafa',
+                'is_system': true,
+                'created_at': DateTime.now()
+                    .subtract(const Duration(hours: 1))
+                    .toIso8601String(),
+              },
+              {
+                'content':
+                    'Hi! I\'m really excited about the Luxor tour. What time should I be ready?',
+                'sender_id': 101,
+                'sender_name': 'Ahmed Mostafa',
+                'is_system': false,
+                'created_at': DateTime.now()
+                    .subtract(const Duration(minutes: 45))
+                    .toIso8601String(),
+              },
+            ],
+          },
+          {
+            'key': 'mock_2',
+            'tourist_id': '102',
+            'tourist_name': 'Sara El-Sayed',
+            'last_message': 'Hi, is the Pyramids tour still available?',
+            'last_time': '09:52',
+            'unread': 1,
+            'messages': [
+              {
+                'content':
+                    'Hi, is the Pyramids tour still available for this weekend?',
+                'sender_id': 102,
+                'sender_name': 'Sara El-Sayed',
+                'is_system': false,
+                'created_at': DateTime.now()
+                    .subtract(const Duration(hours: 2))
+                    .toIso8601String(),
+              },
+            ],
+          },
+          {
+            'key': 'mock_3',
+            'tourist_id': '103',
+            'tourist_name': 'James Miller',
+            'last_message': 'Thank you so much! Great experience.',
+            'last_time': 'Yesterday',
+            'unread': 0,
+            'messages': [
+              {
+                'content':
+                    'The tour was absolutely amazing! You really know your history.',
+                'sender_id': 103,
+                'sender_name': 'James Miller',
+                'is_system': false,
+                'created_at': DateTime.now()
+                    .subtract(const Duration(days: 1, hours: 3))
+                    .toIso8601String(),
+              },
+              {
+                'content':
+                    'Thank you James! It was a pleasure showing you around Egypt.',
+                'sender_id': _myGuideId,
+                'sender_name': 'Guide',
+                'is_system': false,
+                'created_at': DateTime.now()
+                    .subtract(const Duration(days: 1, hours: 2))
+                    .toIso8601String(),
+              },
+              {
+                'content': 'Thank you so much! Great experience.',
+                'sender_id': 103,
+                'sender_name': 'James Miller',
+                'is_system': false,
+                'created_at': DateTime.now()
+                    .subtract(const Duration(days: 1))
+                    .toIso8601String(),
+              },
+            ],
+          },
+          {
+            'key': 'mock_4',
+            'tourist_id': '104',
+            'tourist_name': 'Nour Hassan',
+            'last_message': 'Can we reschedule to Friday instead?',
+            'last_time': 'Yesterday',
+            'unread': 0,
+            'messages': [
+              {
+                'content': 'Hello! Can we reschedule to Friday instead?',
+                'sender_id': 104,
+                'sender_name': 'Nour Hassan',
+                'is_system': false,
+                'created_at': DateTime.now()
+                    .subtract(const Duration(days: 1, hours: 5))
+                    .toIso8601String(),
+              },
+              {
+                'content':
+                    'Sure Nour, Friday works fine. I\'ll update your booking.',
+                'sender_id': _myGuideId,
+                'sender_name': 'Guide',
+                'is_system': false,
+                'created_at': DateTime.now()
+                    .subtract(const Duration(days: 1, hours: 4))
+                    .toIso8601String(),
+              },
+              {
+                'content': 'Can we reschedule to Friday instead?',
+                'sender_id': 104,
+                'sender_name': 'Nour Hassan',
+                'is_system': false,
+                'created_at': DateTime.now()
+                    .subtract(const Duration(days: 1, hours: 3))
+                    .toIso8601String(),
+              },
+            ],
+          },
+          {
+            'key': 'mock_5',
+            'tourist_id': '105',
+            'tourist_name': 'Lena Braun',
+            'last_message': 'Perfect, see you at 8am!',
+            'last_time': 'Mon',
+            'unread': 0,
+            'messages': [
+              {
+                'content': 'What time does the tour start tomorrow?',
+                'sender_id': 105,
+                'sender_name': 'Lena Braun',
+                'is_system': false,
+                'created_at': DateTime.now()
+                    .subtract(const Duration(days: 3, hours: 2))
+                    .toIso8601String(),
+              },
+              {
+                'content': 'We start at 8am sharp, meet at the hotel lobby.',
+                'sender_id': _myGuideId,
+                'sender_name': 'Guide',
+                'is_system': false,
+                'created_at': DateTime.now()
+                    .subtract(const Duration(days: 3, hours: 1))
+                    .toIso8601String(),
+              },
+              {
+                'content': 'Perfect, see you at 8am!',
+                'sender_id': 105,
+                'sender_name': 'Lena Braun',
+                'is_system': false,
+                'created_at': DateTime.now()
+                    .subtract(const Duration(days: 3))
+                    .toIso8601String(),
+              },
+            ],
+          },
+        ];
+        _isLoading = false;
+      });
     }
   }
 
@@ -60,18 +214,18 @@ class _GuideMessagesScreenState extends State<GuideMessagesScreen> {
             child: _isLoading
                 ? _buildSkeleton()
                 : _conversations.isEmpty
-                    ? _buildEmpty()
-                    : RefreshIndicator(
-                        onRefresh: _loadConversations,
-                        color: AppColors.gold,
-                        child: ListView.builder(
-                          padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
-                          physics: const BouncingScrollPhysics(),
-                          itemCount: _conversations.length,
-                          itemBuilder: (_, i) =>
-                              _buildConversationCard(_conversations[i]),
-                        ),
-                      ),
+                ? _buildEmpty()
+                : RefreshIndicator(
+                    onRefresh: _loadConversations,
+                    color: AppColors.gold,
+                    child: ListView.builder(
+                      padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
+                      physics: const BouncingScrollPhysics(),
+                      itemCount: _conversations.length,
+                      itemBuilder: (_, i) =>
+                          _buildConversationCard(_conversations[i]),
+                    ),
+                  ),
           ),
         ],
       ),
@@ -81,7 +235,11 @@ class _GuideMessagesScreenState extends State<GuideMessagesScreen> {
   Widget _buildHeader() {
     return Container(
       padding: EdgeInsets.fromLTRB(
-          20, MediaQuery.of(context).padding.top + 16, 20, 20),
+        20,
+        MediaQuery.of(context).padding.top + 16,
+        20,
+        20,
+      ),
       decoration: const BoxDecoration(
         color: AppColors.bgCard,
         border: Border(bottom: BorderSide(color: AppColors.border)),
@@ -96,21 +254,29 @@ class _GuideMessagesScreenState extends State<GuideMessagesScreen> {
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: AppColors.borderGold),
             ),
-            child: const Icon(Icons.message_rounded,
-                color: AppColors.gold, size: 20),
+            child: const Icon(
+              Icons.message_rounded,
+              color: AppColors.gold,
+              size: 20,
+            ),
           ),
           const SizedBox(width: 14),
           const Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Messages',
-                    style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold)),
-                Text('Tourist conversations',
-                    style: TextStyle(color: Colors.white38, fontSize: 12)),
+                Text(
+                  'Messages',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Text(
+                  'Tourist conversations',
+                  style: TextStyle(color: Colors.white38, fontSize: 12),
+                ),
               ],
             ),
           ),
@@ -123,8 +289,11 @@ class _GuideMessagesScreenState extends State<GuideMessagesScreen> {
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: AppColors.border),
               ),
-              child: const Icon(Icons.refresh_rounded,
-                  color: Colors.white54, size: 18),
+              child: const Icon(
+                Icons.refresh_rounded,
+                color: Colors.white54,
+                size: 18,
+              ),
             ),
           ),
         ],
@@ -140,7 +309,8 @@ class _GuideMessagesScreenState extends State<GuideMessagesScreen> {
       onTap: () => Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (_) => GuideChatScreen(conversation: conv),
+          builder: (_) =>
+              GuideChatScreen(conversation: conv, guideId: _myGuideId),
         ),
       ).then((_) => _loadConversations()),
       child: Container(
@@ -150,11 +320,11 @@ class _GuideMessagesScreenState extends State<GuideMessagesScreen> {
           color: AppColors.bgCard,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-              color: hasUnread ? AppColors.borderGold : AppColors.border),
+            color: hasUnread ? AppColors.borderGold : AppColors.border,
+          ),
         ),
         child: Row(
           children: [
-            // Avatar
             Container(
               width: 50,
               height: 50,
@@ -163,26 +333,32 @@ class _GuideMessagesScreenState extends State<GuideMessagesScreen> {
                 shape: BoxShape.circle,
                 border: Border.all(color: AppColors.borderGold),
               ),
-              child: const Icon(Icons.person_rounded,
-                  color: AppColors.gold, size: 24),
+              child: const Icon(
+                Icons.person_rounded,
+                color: AppColors.gold,
+                size: 24,
+              ),
             ),
             const SizedBox(width: 14),
-            // Info
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(conv['participant'] ?? '',
-                      style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 15,
-                          fontWeight: FontWeight.bold)),
+                  Text(
+                    conv['tourist_name'] ?? 'Tourist',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                   const SizedBox(height: 4),
                   Text(
                     conv['last_message'] ?? '',
                     style: TextStyle(
-                        color: hasUnread ? Colors.white60 : Colors.white38,
-                        fontSize: 13),
+                      color: hasUnread ? Colors.white60 : Colors.white38,
+                      fontSize: 13,
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -190,27 +366,32 @@ class _GuideMessagesScreenState extends State<GuideMessagesScreen> {
               ),
             ),
             const SizedBox(width: 10),
-            // Time + unread badge
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                Text(conv['updated_at'] ?? '',
-                    style:
-                        const TextStyle(color: Colors.white38, fontSize: 11)),
+                Text(
+                  conv['last_time'] ?? '',
+                  style: const TextStyle(color: Colors.white38, fontSize: 11),
+                ),
                 if (hasUnread) ...[
                   const SizedBox(height: 6),
                   Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 8, vertical: 3),
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
                     decoration: BoxDecoration(
                       color: AppColors.gold,
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: Text('$unread',
-                        style: const TextStyle(
-                            color: Colors.black,
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold)),
+                    child: Text(
+                      '$unread',
+                      style: const TextStyle(
+                        color: Colors.black,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
                 ],
               ],
@@ -250,18 +431,26 @@ class _GuideMessagesScreenState extends State<GuideMessagesScreen> {
               shape: BoxShape.circle,
               border: Border.all(color: AppColors.borderGold),
             ),
-            child: const Icon(Icons.message_outlined,
-                color: AppColors.gold, size: 36),
+            child: const Icon(
+              Icons.message_outlined,
+              color: AppColors.gold,
+              size: 36,
+            ),
           ),
           const SizedBox(height: 16),
-          const Text('No messages yet',
-              style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold)),
+          const Text(
+            'No messages yet',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
           const SizedBox(height: 8),
-          const Text('Tourist messages will appear here',
-              style: TextStyle(color: Colors.white38, fontSize: 13)),
+          const Text(
+            'Tourist messages will appear here',
+            style: TextStyle(color: Colors.white38, fontSize: 13),
+          ),
         ],
       ),
     );
@@ -269,32 +458,35 @@ class _GuideMessagesScreenState extends State<GuideMessagesScreen> {
 }
 
 // ════════════════════════════════════════════════════════════
-// CHAT SCREEN
+// GUIDE CHAT SCREEN
 // ════════════════════════════════════════════════════════════
 
 class GuideChatScreen extends StatefulWidget {
   final Map<String, dynamic> conversation;
+  final int guideId;
 
-  const GuideChatScreen({super.key, required this.conversation});
+  const GuideChatScreen({
+    super.key,
+    required this.conversation,
+    required this.guideId,
+  });
 
   @override
   State<GuideChatScreen> createState() => _GuideChatScreenState();
 }
 
 class _GuideChatScreenState extends State<GuideChatScreen> {
-  final _service = ConversationService();
   final _msgCtrl = TextEditingController();
   final _scrollCtrl = ScrollController();
 
   List<Map<String, dynamic>> _messages = [];
-  bool _isLoading = true;
   bool _isSending = false;
-  int _myUserId = 0;
+  String _guideName = '';
 
   @override
   void initState() {
     super.initState();
-    _loadMyId();
+    _loadGuideInfo();
     _loadMessages();
   }
 
@@ -305,36 +497,19 @@ class _GuideChatScreenState extends State<GuideChatScreen> {
     super.dispose();
   }
 
-  Future<void> _loadMyId() async {
-    final data = await DioClient.getUserData();
-    if (mounted) setState(() => _myUserId = data['user_id'] ?? 0);
+  Future<void> _loadGuideInfo() async {
+    final userData = await DioClient.getUserData();
+    if (mounted) setState(() => _guideName = userData['name'] ?? 'Guide');
   }
 
-  Future<void> _loadMessages() async {
-    setState(() => _isLoading = true);
-    try {
-      final response =
-          await _service.getMessages(widget.conversation['id']);
-      final data = response.data;
-      final List items = data['data'] ?? data ?? [];
-      if (mounted) {
-        setState(() {
-          _messages = items.map<Map<String, dynamic>>((m) => {
-            'id': m['id'],
-            'content': m['content'] ?? m['message'] ?? '',
-            'sender_id': m['user_id'] ?? m['sender_id'] ?? 0,
-            'sender_name': m['user']?['name'] ?? m['sender']?['name'] ?? '',
-            'created_at': m['created_at']?.toString() ?? '',
-            'is_ai': m['is_ai'] ?? false,
-          }).toList();
-        });
-        _scrollToBottom();
-      }
-    } catch (e) {
-      debugPrint('Messages error: $e');
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
+  void _loadMessages() {
+    final List raw = widget.conversation['messages'] as List? ?? [];
+    setState(() {
+      _messages = raw
+          .map<Map<String, dynamic>>((m) => Map<String, dynamic>.from(m))
+          .toList();
+    });
+    _scrollToBottom();
   }
 
   Future<void> _sendMessage() async {
@@ -344,22 +519,20 @@ class _GuideChatScreenState extends State<GuideChatScreen> {
     setState(() => _isSending = true);
     _msgCtrl.clear();
 
-    try {
-      await _service.sendMessage(
-        widget.conversation['id'],
-        {'content': text},
-      );
-      await _loadMessages();
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Failed to send message'),
-          backgroundColor: Colors.red,
-        ));
-      }
-    } finally {
-      if (mounted) setState(() => _isSending = false);
-    }
+    final msg = {
+      'content': text,
+      'sender_id': widget.guideId,
+      'sender_name': _guideName,
+      'is_system': false,
+      'created_at': DateTime.now().toIso8601String(),
+    };
+
+    setState(() {
+      _messages.add(msg);
+      _isSending = false;
+    });
+
+    _scrollToBottom();
   }
 
   void _scrollToBottom() {
@@ -382,18 +555,15 @@ class _GuideChatScreenState extends State<GuideChatScreen> {
         children: [
           _buildHeader(),
           Expanded(
-            child: _isLoading
-                ? const Center(
-                    child: CircularProgressIndicator(color: AppColors.gold))
-                : _messages.isEmpty
-                    ? _buildEmptyChat()
-                    : ListView.builder(
-                        controller: _scrollCtrl,
-                        padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
-                        physics: const BouncingScrollPhysics(),
-                        itemCount: _messages.length,
-                        itemBuilder: (_, i) => _buildMessage(_messages[i]),
-                      ),
+            child: _messages.isEmpty
+                ? _buildEmptyChat()
+                : ListView.builder(
+                    controller: _scrollCtrl,
+                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+                    physics: const BouncingScrollPhysics(),
+                    itemCount: _messages.length,
+                    itemBuilder: (_, i) => _buildMessage(_messages[i]),
+                  ),
           ),
           _buildInputBar(),
         ],
@@ -404,7 +574,11 @@ class _GuideChatScreenState extends State<GuideChatScreen> {
   Widget _buildHeader() {
     return Container(
       padding: EdgeInsets.fromLTRB(
-          16, MediaQuery.of(context).padding.top + 12, 16, 16),
+        16,
+        MediaQuery.of(context).padding.top + 12,
+        16,
+        16,
+      ),
       decoration: const BoxDecoration(
         color: AppColors.bgCard,
         border: Border(bottom: BorderSide(color: AppColors.border)),
@@ -421,8 +595,11 @@ class _GuideChatScreenState extends State<GuideChatScreen> {
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(color: AppColors.border),
               ),
-              child: const Icon(Icons.arrow_back_ios_new_rounded,
-                  color: Colors.white, size: 14),
+              child: const Icon(
+                Icons.arrow_back_ios_new_rounded,
+                color: Colors.white,
+                size: 14,
+              ),
             ),
           ),
           const SizedBox(width: 12),
@@ -434,29 +611,31 @@ class _GuideChatScreenState extends State<GuideChatScreen> {
               shape: BoxShape.circle,
               border: Border.all(color: AppColors.borderGold),
             ),
-            child: const Icon(Icons.person_rounded,
-                color: AppColors.gold, size: 20),
+            child: const Icon(
+              Icons.person_rounded,
+              color: AppColors.gold,
+              size: 20,
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(widget.conversation['participant'] ?? 'Tourist',
-                    style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold)),
-                const Text('Tourist',
-                    style:
-                        TextStyle(color: Colors.white38, fontSize: 12)),
+                Text(
+                  widget.conversation['tourist_name'] ?? 'Tourist',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const Text(
+                  'Tourist',
+                  style: TextStyle(color: Colors.white38, fontSize: 12),
+                ),
               ],
             ),
-          ),
-          GestureDetector(
-            onTap: _loadMessages,
-            child: const Icon(Icons.refresh_rounded,
-                color: Colors.white38, size: 20),
           ),
         ],
       ),
@@ -464,15 +643,47 @@ class _GuideChatScreenState extends State<GuideChatScreen> {
   }
 
   Widget _buildMessage(Map<String, dynamic> msg) {
-    final isMe = msg['sender_id'] == _myUserId;
+    final isMe = msg['sender_id'].toString() == widget.guideId.toString();
+    final isSystem = msg['is_system'] == true;
     final content = msg['content'] as String;
+
+    if (isSystem) {
+      return Container(
+        margin: const EdgeInsets.symmetric(vertical: 12),
+        child: Row(
+          children: [
+            const Expanded(child: Divider(color: Colors.white12)),
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              decoration: BoxDecoration(
+                color: AppColors.goldDim,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: AppColors.borderGold),
+              ),
+              child: Text(
+                content,
+                style: const TextStyle(
+                  color: AppColors.gold,
+                  fontSize: 12,
+                  height: 1.4,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+            const Expanded(child: Divider(color: Colors.white12)),
+          ],
+        ),
+      );
+    }
 
     return Align(
       alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
         margin: const EdgeInsets.only(bottom: 10),
         constraints: BoxConstraints(
-            maxWidth: MediaQuery.of(context).size.width * 0.72),
+          maxWidth: MediaQuery.of(context).size.width * 0.72,
+        ),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
           color: isMe ? AppColors.gold : AppColors.bgCard,
@@ -482,16 +693,15 @@ class _GuideChatScreenState extends State<GuideChatScreen> {
             bottomLeft: Radius.circular(isMe ? 16 : 4),
             bottomRight: Radius.circular(isMe ? 4 : 16),
           ),
-          border: isMe
-              ? null
-              : Border.all(color: AppColors.border),
+          border: isMe ? null : Border.all(color: AppColors.border),
         ),
         child: Text(
           content,
           style: TextStyle(
-              color: isMe ? Colors.black : Colors.white,
-              fontSize: 14,
-              height: 1.4),
+            color: isMe ? Colors.black : Colors.white,
+            fontSize: 14,
+            height: 1.4,
+          ),
         ),
       ),
     );
@@ -500,7 +710,11 @@ class _GuideChatScreenState extends State<GuideChatScreen> {
   Widget _buildInputBar() {
     return Container(
       padding: EdgeInsets.fromLTRB(
-          16, 12, 16, MediaQuery.of(context).padding.bottom + 12),
+        16,
+        12,
+        16,
+        MediaQuery.of(context).padding.bottom + 12,
+      ),
       decoration: const BoxDecoration(
         color: AppColors.bgCard,
         border: Border(top: BorderSide(color: AppColors.border)),
@@ -515,12 +729,14 @@ class _GuideChatScreenState extends State<GuideChatScreen> {
               textInputAction: TextInputAction.send,
               onSubmitted: (_) => _sendMessage(),
               decoration: InputDecoration(
-                hintText: 'Type a message...',
+                hintText: 'Reply to tourist...',
                 hintStyle: const TextStyle(color: Colors.white38),
                 filled: true,
                 fillColor: AppColors.bgInput,
                 contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16, vertical: 12),
+                  horizontal: 16,
+                  vertical: 12,
+                ),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(24),
                   borderSide: const BorderSide(color: AppColors.border),
@@ -551,10 +767,15 @@ class _GuideChatScreenState extends State<GuideChatScreen> {
                   ? const Padding(
                       padding: EdgeInsets.all(12),
                       child: CircularProgressIndicator(
-                          color: Colors.black, strokeWidth: 2),
+                        color: Colors.black,
+                        strokeWidth: 2,
+                      ),
                     )
-                  : const Icon(Icons.send_rounded,
-                      color: Colors.black, size: 20),
+                  : const Icon(
+                      Icons.send_rounded,
+                      color: Colors.black,
+                      size: 20,
+                    ),
             ),
           ),
         ],
@@ -567,15 +788,22 @@ class _GuideChatScreenState extends State<GuideChatScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.chat_bubble_outline_rounded,
-              color: Colors.white24, size: 48),
+          const Icon(
+            Icons.chat_bubble_outline_rounded,
+            color: Colors.white24,
+            size: 48,
+          ),
           const SizedBox(height: 12),
-          const Text('No messages yet',
-              style: TextStyle(color: Colors.white38, fontSize: 14)),
+          const Text(
+            'No messages yet',
+            style: TextStyle(color: Colors.white38, fontSize: 14),
+          ),
           const SizedBox(height: 8),
-          Text('Start the conversation with ${widget.conversation['participant']}',
-              style: const TextStyle(color: Colors.white24, fontSize: 12),
-              textAlign: TextAlign.center),
+          Text(
+            'Waiting for ${widget.conversation['tourist_name'] ?? 'tourist'} to start',
+            style: const TextStyle(color: Colors.white24, fontSize: 12),
+            textAlign: TextAlign.center,
+          ),
         ],
       ),
     );
