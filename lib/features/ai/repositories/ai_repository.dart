@@ -35,7 +35,11 @@ class AIRepository {
     try {
       final response = await _apiService.post<MessageModel>(
         endpoint: '/v1/conversations/$conversationId/messages',
-        data: {'content': message},
+        data: {
+          'content': message,
+          'message': message,
+          'sender': 'user',
+        },
         fromJson: (json) => MessageModel.fromJson(json),
         includeAuth: true,
       );

@@ -82,6 +82,20 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen>
     }
   }
 
+  String _cleanPrice(String value) {
+    final cleaned = value
+        .replaceAll(RegExp(r'egp', caseSensitive: false), '')
+        .replaceAll('جنيه', '')
+        .replaceAll('/pax', '')
+        .replaceAll(RegExp(r'pax', caseSensitive: false), '')
+        .replaceAll(r'$', '')
+        .replaceAll(',', '')
+        .trim();
+    return cleaned.isEmpty ? '0' : cleaned;
+  }
+
+  String get _priceLabel => 'EGP ${_cleanPrice(_price)}';
+
   Widget _buildImage({
     double? width,
     double? height,
@@ -347,7 +361,7 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen>
                                     text: TextSpan(
                                       children: [
                                         TextSpan(
-                                          text: '\$$_price',
+                                          text: _priceLabel,
                                           style: const TextStyle(
                                             color: Colors.white,
                                             fontSize: 22,

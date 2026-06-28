@@ -72,7 +72,11 @@ class _AiChatScreenState extends State<AiChatScreen> {
     try {
       final response = await _conversationService.sendMessage(
         _conversationId!,
-        {'message': text},
+        {
+          'message': text,
+          'content': text,
+          'sender': 'user',
+        },
       );
       final data = response.data;
       final aiReply = data['data']?['response'] ?? data['response'] ?? data['message'] ?? '';

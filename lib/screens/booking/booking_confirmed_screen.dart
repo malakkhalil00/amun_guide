@@ -80,7 +80,7 @@ class _BookingConfirmedScreenState extends State<BookingConfirmedScreen>
                 const SizedBox(height: 10),
 
                 Text(
-                  'Your booking has been submitted.\nWaiting for guide approval.',
+                  'Your booking has been submitted.\nUpload your payment receipt from My Bookings.',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                       color: Colors.white.withOpacity(0.5),
@@ -138,7 +138,7 @@ class _BookingConfirmedScreenState extends State<BookingConfirmedScreen>
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(
-                          'Once the guide approves your booking, you\'ll be able to upload your payment receipt from My Bookings.',
+                          'Your receipt will be reviewed by an admin. After payment approval, the guide can approve your booking.',
                           style: TextStyle(
                               color: Colors.white.withOpacity(0.55),
                               fontSize: 12,

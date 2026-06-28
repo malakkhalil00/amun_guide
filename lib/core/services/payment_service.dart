@@ -10,18 +10,23 @@ class PaymentService {
     required double amount,
     required String payableType,
     required int payableId,
-    String? receiptImageUrl,
+    required String receiptImagePath,
     String? notes,
   }) async {
+    final formData = FormData.fromMap({
+      'amount': amount,
+      'payable_type': payableType,
+      'payable_id': payableId,
+      'receipt_image': await MultipartFile.fromFile(
+        receiptImagePath,
+        filename: 'receipt.jpg',
+      ),
+      if (notes != null && notes.isNotEmpty) 'notes': notes,
+    });
+
     return await _dio.post(
       Api.payments,
-      data: {
-        'amount': amount,
-        'payable_type': payableType,
-        'payable_id': payableId,
-        if (receiptImageUrl != null) 'receipt_image': receiptImageUrl,
-        if (notes != null && notes.isNotEmpty) 'notes': notes,
-      },
+      data: formData,
     );
   }
 

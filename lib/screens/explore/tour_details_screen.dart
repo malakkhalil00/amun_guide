@@ -129,7 +129,7 @@ class _TourDetailsScreenState extends State<TourDetailsScreen>
           setState(() {
             _tourId = tour['id'] ?? tourId;
             _title = tour['title'] ?? tour['name'] ?? _title;
-            _price = '\$${tour['price'] ?? tour['ticket_price'] ?? ''}';
+            _price = (tour['price'] ?? tour['ticket_price'] ?? '').toString();
             _location = tour['location'] ?? _location;
             _description = tour['description'] ?? '';
             _rating = (tour['rating'] ?? _rating).toString();
@@ -177,6 +177,20 @@ class _TourDetailsScreenState extends State<TourDetailsScreen>
     }
   }
 
+  String _cleanPrice(String value) {
+    final cleaned = value
+        .replaceAll(RegExp(r'egp', caseSensitive: false), '')
+        .replaceAll('جنيه', '')
+        .replaceAll('/pax', '')
+        .replaceAll(RegExp(r'pax', caseSensitive: false), '')
+        .replaceAll(r'$', '')
+        .replaceAll(',', '')
+        .trim();
+    return cleaned.isEmpty ? '0' : cleaned;
+  }
+
+  String get _priceLabel => 'EGP ${_cleanPrice(_price)}';
+
   void _openBookingSummary() {
     Navigator.pushNamed(
       context,
@@ -185,11 +199,7 @@ class _TourDetailsScreenState extends State<TourDetailsScreen>
         'id': _tourId,
         'name': _title,
         'guideName': _guide['name'] ?? '',
-        'price':
-            double.tryParse(
-              _price.replaceAll('\$', '').replaceAll(',', '').trim(),
-            ) ??
-            0.0,
+        'price': double.tryParse(_cleanPrice(_price)) ?? 0.0,
         'duration_days': _durationDays,
         'location': _location,
         'image': _image,
@@ -553,7 +563,7 @@ class _TourDetailsScreenState extends State<TourDetailsScreen>
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        _price.isNotEmpty ? _price : '\$0',
+                        _priceLabel,
                         style: const TextStyle(
                           color: AppColors.gold,
                           fontSize: 26,

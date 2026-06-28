@@ -1,6 +1,9 @@
 // 📁 lib/screens/payment/complete_payment_screen.dart
 
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/services/payment_service.dart';
 import '../../core/widgets/amun_app_bar.dart';
@@ -30,21 +33,27 @@ class CompletePaymentScreen extends StatefulWidget {
 
 class _CompletePaymentScreenState extends State<CompletePaymentScreen> {
   final _paymentService = PaymentService();
-  final _urlController = TextEditingController();
   final _notesController = TextEditingController();
   bool _isSubmitting = false;
+  String? _receiptImagePath;
 
   @override
   void dispose() {
-    _urlController.dispose();
     _notesController.dispose();
     super.dispose();
   }
 
+  Future<void> _pickReceiptImage() async {
+    final picked = await ImagePicker().pickImage(source: ImageSource.gallery);
+    if (picked != null) {
+      setState(() => _receiptImagePath = picked.path);
+    }
+  }
+
   Future<void> _submitPayment() async {
-    final url = _urlController.text.trim();
-    if (url.isEmpty) {
-      _showError('Please enter the receipt image URL');
+    final receiptPath = _receiptImagePath;
+    if (receiptPath == null || receiptPath.isEmpty) {
+      _showError('Please select the receipt image');
       return;
     }
     final bookingId = widget.bookingId;
@@ -58,7 +67,7 @@ class _CompletePaymentScreenState extends State<CompletePaymentScreen> {
         amount: widget.amount ?? 0.0,
         payableType: 'tour_bookings',
         payableId: bookingId,
-        receiptImageUrl: url,
+        receiptImagePath: receiptPath,
         notes: _notesController.text.trim(),
       );
       if (!mounted) return;
@@ -226,36 +235,65 @@ class _CompletePaymentScreenState extends State<CompletePaymentScreen> {
             ),
             const SizedBox(height: 16),
             const Text(
-              'Receipt Image URL',
+              'Receipt Image',
               style: TextStyle(color: Colors.white70, fontSize: 13),
             ),
             const SizedBox(height: 8),
-            Container(
-              decoration: BoxDecoration(
-                color: const Color(0xFF1E1A16),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: AppColors.gold.withOpacity(0.25)),
-              ),
-              child: TextField(
-                controller: _urlController,
-                style: const TextStyle(color: Colors.white, fontSize: 14),
-                keyboardType: TextInputType.url,
-                decoration: InputDecoration(
-                  hintText: 'https://...',
-                  hintStyle: TextStyle(
-                    color: Colors.white.withOpacity(0.25),
-                    fontSize: 13,
-                  ),
-                  prefixIcon: const Icon(
-                    Icons.link,
-                    color: Colors.white38,
-                    size: 18,
-                  ),
-                  border: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 14,
-                  ),
+            GestureDetector(
+              onTap: _pickReceiptImage,
+              child: Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1E1A16),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: AppColors.gold.withOpacity(0.25)),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 52,
+                      height: 52,
+                      decoration: BoxDecoration(
+                        color: AppColors.gold.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: _receiptImagePath == null
+                          ? const Icon(
+                              Icons.upload_file,
+                              color: AppColors.gold,
+                              size: 24,
+                            )
+                          : ClipRRect(
+                              borderRadius: BorderRadius.circular(12),
+                              child: Image.file(
+                                File(_receiptImagePath!),
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Text(
+                        _receiptImagePath == null
+                            ? 'Tap to select receipt image'
+                            : _receiptImagePath!.split(RegExp(r'[\\/]')).last,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: _receiptImagePath == null
+                              ? Colors.white38
+                              : Colors.white,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                    const Icon(
+                      Icons.image_outlined,
+                      color: Colors.white38,
+                      size: 18,
+                    ),
+                  ],
                 ),
               ),
             ),

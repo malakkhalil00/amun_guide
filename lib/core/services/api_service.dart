@@ -153,10 +153,12 @@ class ApiService {
     try {
       final response = await _dioClient.dio.delete(endpoint);
 
-      if (response.statusCode == 200 || response.statusCode == 201) {
+      if (response.statusCode == 200 ||
+          response.statusCode == 201 ||
+          response.statusCode == 204) {
         return ApiResponse<T>(
           success: true,
-          data: fromJson(response.data),
+          data: fromJson(response.data ?? <String, dynamic>{}),
           statusCode: response.statusCode,
         );
       }

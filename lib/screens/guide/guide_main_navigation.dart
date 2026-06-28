@@ -1,15 +1,9 @@
-// 📁 lib/screens/guide/guide_main_navigation.dart
-// ✅ ربط كل الـ tabs بالـ screens الحقيقية
-
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
-import 'guide_dashboard_screen.dart';
 import 'guide_tours_screen.dart';
 import 'guide_bookings_screen.dart';
-import 'guide_placeholder_screen.dart';
 import 'guide_messages_screen.dart';
 import '../tourist/profile_screen.dart';
-
 
 class GuideMainNavigation extends StatefulWidget {
   const GuideMainNavigation({super.key});
@@ -31,15 +25,14 @@ class _GuideMainNavigationState extends State<GuideMainNavigation>
     super.initState();
 
     _screens = [
-      const GuideDashboardScreen(),      // Tab 0 — Dashboard
-      const GuideToursScreen(),          // Tab 1 — My Tours
-      const GuideBookingsScreen(),       // Tab 2 — Bookings ✅ ربط حقيقي
-      const GuideMessagesScreen(),       // Tab 3 — Messages ✅
-      const ProfileScreen(),             // Tab 4 — Profile
+      const GuideToursScreen(),
+      const GuideBookingsScreen(),
+      const GuideMessagesScreen(),
+      const ProfileScreen(),
     ];
 
     _controllers = List.generate(
-      5,
+      _screens.length,
       (_) => AnimationController(
         vsync: this,
         duration: const Duration(milliseconds: 200),
@@ -56,7 +49,9 @@ class _GuideMainNavigationState extends State<GuideMainNavigation>
 
   @override
   void dispose() {
-    for (final c in _controllers) c.dispose();
+    for (final c in _controllers) {
+      c.dispose();
+    }
     super.dispose();
   }
 
@@ -78,7 +73,6 @@ class _GuideMainNavigationState extends State<GuideMainNavigation>
 
   Widget _buildNavBar() {
     final items = [
-      (Icons.dashboard_outlined, Icons.dashboard_rounded, 'Dashboard'),
       (Icons.map_outlined, Icons.map_rounded, 'My Tours'),
       (Icons.book_online_outlined, Icons.book_online_rounded, 'Bookings'),
       (Icons.message_outlined, Icons.message_rounded, 'Messages'),
@@ -142,7 +136,9 @@ class _GuideMainNavigationState extends State<GuideMainNavigation>
                 decoration: BoxDecoration(
                   color: isActive ? AppColors.goldDim : Colors.transparent,
                   borderRadius: BorderRadius.circular(20),
-                  border: isActive ? Border.all(color: AppColors.borderGold) : null,
+                  border: isActive
+                      ? Border.all(color: AppColors.borderGold)
+                      : null,
                 ),
                 child: Icon(
                   isActive ? activeIcon : icon,

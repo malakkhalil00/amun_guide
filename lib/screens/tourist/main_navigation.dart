@@ -1,12 +1,10 @@
-// 📁 lib/screens/tourist/main_navigation.dart
-
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 import 'dashboard_screen.dart';
 import 'profile_screen.dart';
+import 'saved_places_screen.dart';
 import '../explore/explore_screen.dart';
 import '../explore/tours_screen.dart';
-import '../booking/my_bookings_screen.dart';
 
 class MainNavigation extends StatefulWidget {
   const MainNavigation({super.key});
@@ -17,33 +15,26 @@ class MainNavigation extends StatefulWidget {
 
 class _MainNavigationState extends State<MainNavigation>
     with TickerProviderStateMixin {
-  int _currentIndex = 0;
+  int _currentIndex = 2;
 
+  late final List<Widget> _screens;
   late final List<AnimationController> _controllers;
   late final List<Animation<double>> _scaleAnims;
-
-  // ── نبني الـ dashboard كل مرة نيجي عليه ──
-  DashboardScreen _buildDashboard() => DashboardScreen(
-        onExplore: () => setState(() => _currentIndex = 1),
-        onTours: () => setState(() => _currentIndex = 2),
-      );
-
-  late List<Widget> _screens;
 
   @override
   void initState() {
     super.initState();
 
     _screens = [
-      _buildDashboard(),
       const ExploreScreen(),
       const ToursScreen(),
-      const MyBookingsScreen(),
+      _buildHomeScreen(),
+      const SavedPlacesScreen(),
       const ProfileScreen(),
     ];
 
     _controllers = List.generate(
-      5,
+      _screens.length,
       (_) => AnimationController(
         vsync: this,
         duration: const Duration(milliseconds: 200),
@@ -51,12 +42,13 @@ class _MainNavigationState extends State<MainNavigation>
     );
 
     _scaleAnims = _controllers.map((c) {
-      return Tween<double>(begin: 1.0, end: 1.2).animate(
-        CurvedAnimation(parent: c, curve: Curves.easeOut),
-      );
+      return Tween<double>(
+        begin: 1.0,
+        end: 1.2,
+      ).animate(CurvedAnimation(parent: c, curve: Curves.easeOut));
     }).toList();
 
-    _controllers[0].forward();
+    _controllers[_currentIndex].forward();
   }
 
   @override
@@ -73,12 +65,18 @@ class _MainNavigationState extends State<MainNavigation>
     _controllers[index].forward();
 
     setState(() {
-      // لما نيجي على الـ Home نعمل rebuild للـ dashboard
-      if (index == 0) {
-        _screens[0] = _buildDashboard();
+      if (index == 2) {
+        _screens[2] = _buildHomeScreen();
       }
       _currentIndex = index;
     });
+  }
+
+  Widget _buildHomeScreen() {
+    return DashboardScreen(
+      onExplore: () => _onTabTap(0),
+      onTours: () => _onTabTap(1),
+    );
   }
 
   @override
@@ -92,10 +90,10 @@ class _MainNavigationState extends State<MainNavigation>
 
   Widget _buildNavBar() {
     final items = [
-      (Icons.home_outlined, Icons.home_rounded, 'Home'),
       (Icons.explore_outlined, Icons.explore_rounded, 'Explore'),
       (Icons.map_outlined, Icons.map_rounded, 'Tours'),
-      (Icons.bookmark_border_rounded, Icons.bookmark_rounded, 'My Trips'),
+      (Icons.home_outlined, Icons.home_rounded, 'Home'),
+      (Icons.place_outlined, Icons.place_rounded, 'My Places'),
       (Icons.person_outline, Icons.person_rounded, 'Profile'),
     ];
 
